@@ -7,14 +7,22 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@softcodefr/vue-lens-core": "workspace:*",
     "@softcodefr/vue-lens": "workspace:*",
+    "@softcodefr/vue-lens-core": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
+    "radix-vue": "^1.9.17",
+    "tailwind-merge": "^3.5.0",
     "vue": "^3.4.0",
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
+    "autoprefixer": "^10.5.0",
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.4.0",
     "vite": "^5.0.0",
     "vue-tsc": "^2.0.0"

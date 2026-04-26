@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useCounterStore } from '../stores/counter'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 
 const count = ref(0)
 const store = useCounterStore()
@@ -32,19 +36,58 @@ async function testGraphQL() {
 </script>
 
 <template>
-  <div>
-    <p>Local count : {{ count }}</p>
-    <button @click="count++">Increment local</button>
+  <div class="space-y-6">
+    <Card>
+      <CardHeader>
+        <CardTitle>Counter Demo</CardTitle>
+        <CardDescription>Test local state and Pinia store reactivity</CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-muted-foreground">Local count</p>
+            <p class="text-3xl font-bold">{{ count }}</p>
+          </div>
+          <Button @click="count++">Increment local</Button>
+        </div>
 
-    <p>Store count : {{ store.count }}</p>
-    <button @click="store.increment()">Increment store</button>
+        <Separator />
 
-    <hr />
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-muted-foreground">Store count (Pinia)</p>
+            <p class="text-3xl font-bold">{{ store.count }}</p>
+          </div>
+          <Button variant="secondary" @click="store.increment()">Increment store</Button>
+        </div>
+      </CardContent>
+    </Card>
 
-    <button @click="testRest" :disabled="loading">Fetch REST</button>
-    <button @click="testGraphQL" :disabled="loading">Fetch GraphQL</button>
+    <Card>
+      <CardHeader>
+        <CardTitle>Network Requests</CardTitle>
+        <CardDescription>Test REST and GraphQL fetch tracking</CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div class="flex gap-2">
+          <Button variant="outline" @click="testRest" :disabled="loading">
+            Fetch REST
+          </Button>
+          <Button variant="outline" @click="testGraphQL" :disabled="loading">
+            Fetch GraphQL
+          </Button>
+        </div>
 
-    <p v-if="loading">Loading...</p>
-    <p v-if="result">{{ result }}</p>
+        <div v-if="loading" class="flex items-center gap-2">
+          <div class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span class="text-sm text-muted-foreground">Loading...</span>
+        </div>
+
+        <div v-if="result" class="rounded-md bg-muted p-3">
+          <Badge variant="secondary" class="mb-2">Response</Badge>
+          <p class="text-sm">{{ result }}</p>
+        </div>
+      </CardContent>
+    </Card>
   </div>
 </template>

@@ -203,10 +203,10 @@ function mount() {
       render()
     }
     if (target.dataset.reset !== undefined) {
-      e.stopPropagation()   // empêche le toggle du panel
+      e.stopPropagation()
       reset()
     }
-    if (target.dataset.toggle !== undefined) {
+    if (target.closest('[data-toggle]')) {
       isOpen = !isOpen
       render()
     }
@@ -219,7 +219,7 @@ function mount() {
   const scrollTop = scrollEl?.scrollTop ?? 0
 
     el.innerHTML = `
-      <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;" >
+      <div style="padding:8px 12px;display:flex;align-items:center;gap:6px;" >
         <div data-toggle style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1">
           <span style="
             display:inline-block;
@@ -229,7 +229,6 @@ function mount() {
             animation:vl-pulse 2s ease-in-out infinite;
           "></span>
           <span style="color:#555;letter-spacing:0.1em;text-transform:uppercase;font-size:10px">@SoftCode/vue-lens</span>
-          <span style="color:#444;font-size:10px;margin-left:auto">${isOpen ? '▾' : '▸'}</span>
         </div>
         <button data-reset style="
           background:none;
@@ -238,9 +237,10 @@ function mount() {
           font-family:monospace;
           font-size:10px;
           cursor:pointer;
-          padding:0 0 0 12px;
+          padding:0;
           letter-spacing:0.05em;
         ">reset ↺</button>
+        <span data-toggle style="color:#444;font-size:10px;cursor:pointer;padding-left:6px">${isOpen ? '▾' : '▸'}</span>
       </div>
 
       ${isOpen ? `
@@ -321,7 +321,7 @@ function mount() {
                     <div style="margin-bottom:10px;line-height:1.7;border-left:2px solid #1a1a1e;padding-left:8px">
                       <div style="display:flex;align-items:center;gap:6px">
                         <span style="color:${mc};font-size:10px;font-weight:bold">${isGql ? 'GQL' : e.method}</span>
-                        <span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.url}">${isGql && e.gql?.operationName ? e.gql.operationName : url}</span>
+                        <span style="color:#FFF;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.url}">${isGql && e.gql?.operationName ? e.gql.operationName : url}</span>
                         <span style="color:${sc};font-size:10px">${e.status}</span>
                       </div>
                       <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
