@@ -1,13 +1,19 @@
 import { collector } from '@softcodefr/vue-lens-core'
 import type { DebugEvent } from '@softcodefr/vue-lens-core'
 
-const counts: Record<string, number> = {}
+const renderCounts: Record<string, number> = {}
+const routeEvents: Array<{ from: string; to: string; ts: number }> = []
 const listeners: Array<() => void> = []
 
 collector.on((event: DebugEvent) => {
-  if (event.type !== 'render') return
-  counts[event.component] = (counts[event.component] ?? 0) + 1
-  listeners.forEach((fn) => fn())
+  if (event.type === 'render') {
+    renderCounts[event.component] = (renderCounts[event.component] ?? 0) + 1
+  }
+  if (event.type === 'route') {
+    routeEvents.unshift({ from: event.from, to: event.to, ts: event.ts })
+    if (routeEvents.length > 10) routeEvents.pop()
+  }
+  listeners.forEach(fn => fn())
 })
 
 function subscribe(fn: () => void) {
@@ -17,6 +23,9 @@ function subscribe(fn: () => void) {
     if (i > -1) listeners.splice(i, 1)
   }
 }
+
+type Tab = 'renders' | 'routes'
+let activeTab: Tab = 'renders'
 
 function mount() {
   const el = document.createElement('div')
@@ -31,55 +40,83 @@ function mount() {
     background: rgba(10,10,12,0.95);
     border: 1px solid #222;
     border-radius: 10px;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    min-width: 220px;
+    min-width: 260px;
     max-height: 400px;
-    overflow-y: auto;
     color: #e2e0d8;
     backdrop-filter: blur(8px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   `
   document.body.appendChild(el)
 
-  const linkStyle = document.createElement('style')
-  linkStyle.textContent = [
-    '#__vue-debug-panel__ .vl-softcode-link{transition:opacity .15s}',
-    '#__vue-debug-panel__ .vl-softcode-link .vl-softcode-label{transition:color .15s}',
-    '#__vue-debug-panel__ .vl-softcode-link:hover{opacity:1!important}',
-    '#__vue-debug-panel__ .vl-softcode-link:hover .vl-softcode-label{color:#c8c4bc!important}',
-    '#__vue-debug-panel__ .vl-softcode-link:hover svg path{fill:#8a8a8e!important}',
-    '#__vue-debug-panel__ .vl-softcode-link:focus-visible{outline:1px solid #555;outline-offset:2px;border-radius:3px}',
-  ].join('')
-  document.head.appendChild(linkStyle)
+  el.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (target.dataset.tab) {
+      activeTab = target.dataset.tab as Tab
+      render()
+    }
+  })
 
   function render() {
-    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1])
-    const max = Math.max(1, ...entries.map((e) => e[1]))
+    const entries = Object.entries(renderCounts).sort((a, b) => b[1] - a[1])
+    const max = Math.max(1, ...entries.map(e => e[1]))
 
     el.innerHTML = `
-      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px 12px 4px">
-        <div style="color:#555;letter-spacing:0.1em;text-transform:uppercase;font-size:10px;margin-bottom:10px">
-          ● @SoftCode/vue-lens
+      <div style="padding:10px 12px 0;display:flex;align-items:center;justify-content:space-between">
+        <span style="color:#555;letter-spacing:0.1em;text-transform:uppercase;font-size:10px">● @SoftCode/vue-lens</span>
+        <div style="display:flex;gap:4px">
+          <button data-tab="renders" style="
+            background:${activeTab === 'renders' ? '#1e1e24' : 'none'};
+            border:1px solid ${activeTab === 'renders' ? '#333' : 'transparent'};
+            color:${activeTab === 'renders' ? '#e2e0d8' : '#555'};
+            border-radius:4px;padding:2px 8px;font-family:monospace;font-size:10px;cursor:pointer
+          ">renders</button>
+          <button data-tab="routes" style="
+            background:${activeTab === 'routes' ? '#1e1e24' : 'none'};
+            border:1px solid ${activeTab === 'routes' ? '#333' : 'transparent'};
+            color:${activeTab === 'routes' ? '#e2e0d8' : '#555'};
+            border-radius:4px;padding:2px 8px;font-family:monospace;font-size:10px;cursor:pointer
+          ">routes</button>
         </div>
-        ${entries
-          .map(([name, count]) => {
-            const pct = Math.round((count / max) * 100)
-            const color =
-              pct > 70 ? '#f97316' : pct > 30 ? '#a78bfa' : '#6b7280'
-            return `
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <span style="color:#888;flex:1">&lt;${name}/&gt;</span>
-            <div style="width:40px;height:3px;background:#1a1a1e;border-radius:2px">
-              <div style="width:${pct}%;height:100%;background:${color};border-radius:2px"></div>
-            </div>
-            <span style="color:${color};min-width:24px;text-align:right">${count}</span>
-          </div>
-        `
-          })
-          .join('')}
       </div>
-      <div style="flex-shrink:0;padding:0 8px 8px;display:flex;justify-content:flex-end">
+
+      <div style="padding:10px 12px;overflow-y:auto;flex:1">
+        ${activeTab === 'renders' ? `
+          ${entries.length === 0
+            ? `<div style="color:#444;font-size:11px">No renders yet</div>`
+            : entries.map(([name, count]) => {
+                const pct = Math.round((count / max) * 100)
+                const color = pct > 70 ? '#f97316' : pct > 30 ? '#a78bfa' : '#6b7280'
+                return `
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <span style="color:#888;flex:1">&lt;${name}/&gt;</span>
+                    <div style="width:40px;height:3px;background:#1a1a1e;border-radius:2px">
+                      <div style="width:${pct}%;height:100%;background:${color};border-radius:2px"></div>
+                    </div>
+                    <span style="color:${color};min-width:24px;text-align:right">${count}</span>
+                  </div>
+                `
+              }).join('')
+          }
+        ` : `
+          ${routeEvents.length === 0
+            ? `<div style="color:#444;font-size:11px">No navigation yet</div>`
+            : routeEvents.map(e => {
+                const time = new Date(e.ts).toLocaleTimeString('fr')
+                return `
+                  <div style="margin-bottom:8px;line-height:1.6">
+                    <span style="color:#444;font-size:10px">${time}</span><br/>
+                    <span style="color:#555">${e.from}</span>
+                    <span style="color:#333"> → </span>
+                    <span style="color:#a78bfa">${e.to}</span>
+                  </div>
+                `
+              }).join('')
+          }
+        `}
+        </div>
+        <div style="flex-shrink:0;padding:0 8px 8px;display:flex;justify-content:flex-end">
         <a class="vl-softcode-link" href="https://softcode.fr/" target="_blank" rel="noopener noreferrer" title="softcode.fr — agence &amp; studio" style="display:inline-flex;align-items:center;gap:6px;opacity:0.88;text-decoration:none;outline:none">
           <svg width="16" height="16" viewBox="0 0 86 88" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;display:block;opacity:0.95">
             <path d="M84.6689 45.4258C82.3684 33.5028 80.0625 21.5798 77.762 9.65677C77.4007 8.66146 77.023 6.19443 72.2837 2.62063C67.6529 -0.871258 60.2184 0.0302258 59.1664 0.325709C48.3651 2.05196 37.5695 3.702 26.757 5.36759C25.6333 5.55888 23.6229 6.06587 21.4552 7.25817C19.5956 8.2794 18.389 9.35092 17.7249 10.1752C12.5872 17.4327 7.45482 24.6901 2.31713 31.9476C1.94522 32.3934 1.58393 32.9118 1.25453 33.5028C-0.32344 36.3643 -0.0631024 39.2881 0.191923 40.7603C2.31713 53.0306 4.44234 65.2958 6.56754 77.5661C7.41975 82.6956 11.8221 84.6785 12.9432 85.342C17.9746 88.328 23.5373 87.6644 25.1631 87.4156L59.6977 81.7133C60.7391 81.5319 62.2958 81.1275 63.9481 80.1581C66.2806 78.7896 67.5823 76.9959 68.1986 76.011C72.8049 69.6192 77.406 63.2222 82.0124 56.8305C82.7669 55.9336 84.0314 54.1815 84.6689 51.6465C85.3649 48.8731 84.9558 46.5715 84.6689 45.4258ZM77.2998 53.7979C75.0471 56.9497 71.6786 57.7221 70.9454 57.8724C59.8306 59.9097 48.7104 61.947 37.5956 63.9791C37.0165 64.145 33.2761 65.1403 29.6526 62.963C26.4861 61.0554 25.5988 58.0331 25.4181 57.3644L19.0638 22.2433C19.0106 21.2688 18.9681 18.1377 21.1837 15.1154C23.8189 11.523 27.7399 10.6936 28.5953 10.5329C38.8282 8.83771 49.0664 7.13738 59.2993 5.44224C61.4829 5.07937 65.9443 5.37796 68.6959 7.38258C71.3035 9.28249 72.5127 11.891 72.9803 13.2907C73.3841 15.0377 78.0011 35.2031 78.8884 46.1671C79.0371 47.9763 79.2231 51.1126 77.2998 53.8031V53.7979Z" fill="#4C4C4C"/>
