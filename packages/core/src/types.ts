@@ -12,4 +12,11 @@ export type RouteEvent = {
   ts: number
 }
 
-export type DebugEvent = RenderEvent | RouteEvent
+export type StoreEvent = {
+  type: 'store'
+  store: string
+  event: string
+  ts: number
+}
+
+export type DebugEvent = RenderEvent | RouteEvent | StoreEvent

@@ -1,21 +1,48 @@
-import type { Plugin } from 'vite'
-import { transformSFC, transformMain } from './transform'
+import type { Plugin, ResolvedConfig } from 'vite'
+import { transformSFC, transformMain, transformMainStore } from './transform'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-export interface vueLensOptions {
+export interface VueLensOptions {
   router?: boolean
+  store?: boolean
 }
 
-export function vueLens(options: vueLensOptions = {}): Plugin {
+function detectStore(root: string): 'pinia' | 'vuex' | null {
+  try {
+    const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8'))
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies }
+    if (deps['pinia']) return 'pinia'
+    if (deps['vuex']) return 'vuex'
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function vueLens(options: VueLensOptions = {}): Plugin {
+  let storeType: 'pinia' | 'vuex' | null = null
+
   return {
-    name: '@softcodefr/vue-lens',
+    name: 'vue-lens',
     enforce: 'pre',
     apply: 'serve',
+
+    configResolved(config: ResolvedConfig) {
+      if (options.store) {
+        storeType = detectStore(config.root)
+        if (storeType) {
+          console.log(`[vue-lens] store detected: ${storeType}`)
+        } else {
+          console.warn('[vue-lens] store: true but no pinia or vuex found in package.json')
+        }
+      }
+    },
 
     resolveId(id) {
       if (id === 'virtual:vue-lens-panel') return '\0virtual:vue-lens-panel'
       if (id === 'virtual:vue-lens-router') return '\0virtual:vue-lens-router'
+      if (id === 'virtual:vue-lens-store') return '\0virtual:vue-lens-store'
     },
 
     load(id) {
@@ -24,6 +51,9 @@ export function vueLens(options: vueLensOptions = {}): Plugin {
       }
       if (id === '\0virtual:vue-lens-router') {
         return readFileSync(resolve(__dirname, 'router.js'), 'utf-8')
+      }
+      if (id === '\0virtual:vue-lens-store') {
+        return readFileSync(resolve(__dirname, 'store.js'), 'utf-8')
       }
     },
 
@@ -34,9 +64,8 @@ export function vueLens(options: vueLensOptions = {}): Plugin {
 
       if (id.includes('main.ts') || id.includes('main.js')) {
         let result = `import 'virtual:vue-lens-panel'\n${code}`
-        if (options.router) {
-          result = transformMain(result)
-        }
+        if (options.router) result = transformMain(result)
+        if (options.store && storeType) result = transformMainStore(result, storeType)
         return result
       }
 

@@ -37,3 +37,30 @@ import { setupVueLensRouter } from 'virtual:vue-lens-router'
 setupVueLensRouter(router)`
   )
 }
+
+export function transformMainStore(code: string, storeType: 'pinia' | 'vuex'): string {
+  if (storeType === 'pinia') {
+    if (!code.includes('createPinia()')) return code
+    return code.replace(
+      'createPinia()',
+      `createPinia()
+import { setupPinia } from 'virtual:vue-lens-store'
+setupPinia(pinia)`
+    )
+  }
+
+  if (storeType === 'vuex') {
+    if (!code.includes('createStore(')) return code
+    return code.replace(
+      'createStore(',
+      `createStore(`
+    ).replace(
+      'app.use(store)',
+      `app.use(store)
+import { setupVuex } from 'virtual:vue-lens-store'
+setupVuex(store)`
+    )
+  }
+
+  return code
+}
