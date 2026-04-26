@@ -1,28 +1,29 @@
 import type { Plugin } from 'vite'
-import { transformSFC } from './transform'
+import { transformSFC, transformMain } from './transform'
 import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 
-const VIRTUAL_ID = 'virtual:vue-lens-panel'
-const RESOLVED_ID = '\0' + VIRTUAL_ID
+export interface vueLensOptions {
+  router?: boolean
+}
 
-const pluginDir = dirname(fileURLToPath(import.meta.url))
-
-export function vueDebug(): Plugin {
+export function vueLens(options: vueLensOptions = {}): Plugin {
   return {
     name: '@softcodefr/vue-lens',
     enforce: 'pre',
     apply: 'serve',
 
     resolveId(id) {
-      if (id === VIRTUAL_ID) return RESOLVED_ID
+      if (id === 'virtual:vue-lens-panel') return '\0virtual:vue-lens-panel'
+      if (id === 'virtual:vue-lens-router') return '\0virtual:vue-lens-router'
     },
 
     load(id) {
-      if (id === RESOLVED_ID) {
-        const panelPath = resolve(pluginDir, 'panel.js')
-        return readFileSync(panelPath, 'utf-8')
+      if (id === '\0virtual:vue-lens-panel') {
+        return readFileSync(resolve(__dirname, 'panel.js'), 'utf-8')
+      }
+      if (id === '\0virtual:vue-lens-router') {
+        return readFileSync(resolve(__dirname, 'router.js'), 'utf-8')
       }
     },
 
@@ -32,10 +33,14 @@ export function vueDebug(): Plugin {
       }
 
       if (id.includes('main.ts') || id.includes('main.js')) {
-        return `import '${VIRTUAL_ID}'\n${code}`
+        let result = `import 'virtual:vue-lens-panel'\n${code}`
+        if (options.router) {
+          result = transformMain(result)
+        }
+        return result
       }
 
       return null
-    },
+    }
   }
 }

@@ -1,9 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-// import { collector } from '@softcodefr/vue-lens-core'
+import { router } from './router'
 
-// collector.on((event) => {
-//   console.log('[vue-lens]', event)
-// })
-
-createApp(App).mount('#app')
+const app = createApp(App)
+app.use(router)
+app.mount('#app')

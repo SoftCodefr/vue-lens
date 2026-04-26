@@ -1,0 +1,11 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import CounterCard from './components/CounterCard.vue'
+import TimerCard from './components/TimerCard.vue'
+
+export const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/', component: CounterCard },
+    { path: '/timer', component: TimerCard }
+  ]
+})

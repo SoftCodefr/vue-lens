@@ -5,4 +5,11 @@ export type RenderEvent = {
   ts: number
 }
 
-export type DebugEvent = RenderEvent
+export type RouteEvent = {
+  type: 'route'
+  from: string
+  to: string
+  ts: number
+}
+
+export type DebugEvent = RenderEvent | RouteEvent
