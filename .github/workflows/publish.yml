@@ -43,7 +43,7 @@ jobs:
           jq --arg v "$VERSION" '.version = $v | .dependencies["@softcodefr/vue-lens-core"] = $v' packages/vite-plugin/package.json > tmp.json && mv tmp.json packages/vite-plugin/package.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build packages
         run: pnpm build
