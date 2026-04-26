@@ -139,6 +139,9 @@ function mount() {
   function render() {
     el.style.maxHeight = isOpen ? '400px' : 'none'
 
+  const scrollEl = el.querySelector<HTMLElement>('[data-scroll]')
+  const scrollTop = scrollEl?.scrollTop ?? 0
+
     el.innerHTML = `
       <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" data-toggle>
         <span style="display:inline-flex;align-items:center;gap:6px;pointer-events:none">
@@ -162,7 +165,7 @@ function mount() {
           ${tabBtn('network', 'network')}
         </div>
 
-        <div style="padding:10px 12px;overflow-y:auto;flex:1;max-height:280px">
+        <div data-scroll style="padding:10px 12px;overflow-y:auto;flex:1;max-height:280px">
 
           ${activeTab === 'renders' ? `
             ${entries(renderCounts, max()).length === 0
@@ -253,6 +256,9 @@ function mount() {
         </div>
       ` : ''}
     `
+
+    const newScrollEl = el.querySelector<HTMLElement>('[data-scroll]')
+    if (newScrollEl) newScrollEl.scrollTop = scrollTop
   }
 
   render()
