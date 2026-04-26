@@ -10,11 +10,52 @@ const TABS: Tab[] = ['renders', 'routes', 'store', 'network']
 class VueLensPanel extends HTMLElement {
   private activeTab: Tab = 'renders'
   private isOpen = true
+  private isDragging = false
+  private dragOffsetX = 0
+  private dragOffsetY = 0
 
   connectedCallback() {
     this.attachShadow({ mode: 'open' })
     this.render()
     this.shadowRoot!.addEventListener('click', (e) => this.handleClick(e))
+    this.setupDrag()
+  }
+
+  private setupDrag() {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!this.isDragging) return
+      const x = e.clientX - this.dragOffsetX
+      const y = e.clientY - this.dragOffsetY
+  
+      const rect = this.getBoundingClientRect()
+      const maxX = window.innerWidth - rect.width
+      const maxY = window.innerHeight - rect.height
+  
+      this.style.left   = `${Math.min(Math.max(0, x), maxX)}px`
+      this.style.top    = `${Math.min(Math.max(0, y), maxY)}px`
+      this.style.right  = 'auto'
+      this.style.bottom = 'auto'
+    }
+  
+    const onMouseUp = () => {
+      this.isDragging = false
+      document.body.style.userSelect = ''
+    }
+  
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
+  private startDrag(e: MouseEvent) {
+    const target = e.target as HTMLElement
+    if (target.closest('button') || target.closest('a')) return
+  
+    this.isDragging = true
+    document.body.style.userSelect = 'none'
+  
+    const rect = this.getBoundingClientRect()
+    this.dragOffsetX = e.clientX - rect.left
+    this.dragOffsetY = e.clientY - rect.top
   }
 
   private handleClick(e: Event) {
@@ -63,11 +104,14 @@ class VueLensPanel extends HTMLElement {
         }
 
         .header {
+          cursor: grab;
           padding: 8px 12px;
           display: flex;
           align-items: center;
           justify-content: space-between;
         }
+
+        .header:active { cursor: grabbing; }
 
         .header-left {
           display: flex;
@@ -172,7 +216,7 @@ class VueLensPanel extends HTMLElement {
 
       <div class="panel">
         <div class="header">
-          <div class="header-left" data-toggle>
+          <div class="header-left" data-toggle data-drag>
             <span class="dot"></span>
             <span class="title">@SoftCode/vue-lens</span>
             <span class="chevron">${this.isOpen ? '▾' : '▸'}</span>
@@ -206,6 +250,9 @@ class VueLensPanel extends HTMLElement {
         ` : ''}
       </div>
     `
+
+    const header = this.shadowRoot!.querySelector<HTMLElement>('.header')
+    header?.addEventListener('mousedown', (e) => this.startDrag(e))
   }
 }
 
