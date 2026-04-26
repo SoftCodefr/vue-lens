@@ -101,6 +101,56 @@ function tabBtn(id: Tab, label: string) {
   `
 }
 
+let highlightEl: HTMLElement | null = null
+
+function highlight(name: string) {
+  clearHighlight()
+  const target = document.querySelector<HTMLElement>(`[data-vue-lens="${name}"]`)
+  if (!target) return
+
+  const rect = target.getBoundingClientRect()
+
+  highlightEl = document.createElement('div')
+  highlightEl.style.cssText = `
+    position: fixed;
+    top: ${rect.top}px;
+    left: ${rect.left}px;
+    width: ${rect.width}px;
+    height: ${rect.height}px;
+    border: 2px solid #a78bfa;
+    border-radius: 4px;
+    background: rgba(167,139,250,0.08);
+    pointer-events: none;
+    z-index: 99998;
+    transition: all 0.15s ease;
+  `
+
+  const label = document.createElement('div')
+  label.style.cssText = `
+    position: absolute;
+    top: -20px;
+    left: 0;
+    background: #a78bfa;
+    color: #0d0d0f;
+    font-family: monospace;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  `
+  label.textContent = `<${name}/>`
+  highlightEl.appendChild(label)
+
+  document.body.appendChild(highlightEl)
+}
+
+function clearHighlight() {
+  if (highlightEl) {
+    highlightEl.remove()
+    highlightEl = null
+  }
+}
+
 function mount() {
   const el = document.createElement('div')
   el.id = '__vue-debug-panel__'
@@ -131,6 +181,18 @@ function mount() {
   `
   document.head.appendChild(style)
   document.body.appendChild(el)
+
+  el.addEventListener('mouseover', (e) => {
+    const target = e.target as HTMLElement
+    const row = target.closest<HTMLElement>('[data-component]')
+    if (row?.dataset.component) highlight(row.dataset.component)
+  })
+  
+  el.addEventListener('mouseout', (e) => {
+    const target = e.target as HTMLElement
+    const row = target.closest<HTMLElement>('[data-component]')
+    if (row) clearHighlight()
+  })
 
   el.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
@@ -195,7 +257,7 @@ function mount() {
               : entries(renderCounts, max()).map(([name, count, pct]) => {
                   const color = pct > 70 ? '#f97316' : pct > 30 ? '#a78bfa' : '#6b7280'
                   return `
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <div data-component="${name}" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:default">
                       <span style="color:#888;flex:1">&lt;${name}/&gt;</span>
                       <div style="width:40px;height:3px;background:#1a1a1e;border-radius:2px">
                         <div style="width:${pct}%;height:100%;background:${color};border-radius:2px"></div>

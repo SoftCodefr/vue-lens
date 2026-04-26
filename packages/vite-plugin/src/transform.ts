@@ -1,6 +1,9 @@
 export function transformSFC(code: string, id: string): string | null {
   if (!code.includes('<script setup')) return null
 
+  const componentName = id.split('/').pop()?.replace('.vue', '') ?? 'Unknown'
+
+  // Injection du hook de render
   const injection = `
 import { onRenderTriggered } from 'vue'
 import { collector } from '@softcodefr/vue-lens-core'
@@ -8,26 +11,28 @@ import { collector } from '@softcodefr/vue-lens-core'
 onRenderTriggered(() => {
   collector.emit({
     type: 'render',
-    component: '__COMPONENT_NAME__',
-    file: '__COMPONENT_FILE__',
+    component: '${componentName}',
+    file: '${id}',
     ts: Date.now()
   })
 })
 `
 
-  const componentName = id.split('/').pop()?.replace('.vue', '') ?? 'Unknown'
-  const filled = injection
-    .replace('__COMPONENT_NAME__', componentName)
-    .replace('__COMPONENT_FILE__', id)
-
-  return code.replace(
+  let result = code.replace(
     /(<script\s+setup[^>]*>)/,
-    `$1${filled}`
+    `$1${injection}`
   )
+
+  // Injection de data-vue-lens sur le root element du template
+  result = result.replace(
+    /(<template[^>]*>\s*<)([a-zA-Z][a-zA-Z0-9-]*)/,
+    `$1$2 data-vue-lens="${componentName}"`
+  )
+
+  return result
 }
 
 export function transformMain(code: string): string {
-  // Détecte app.use(router) et injecte setupVueDebugRouter juste après
   if (!code.includes('app.use(router)')) return code
 
   return code.replace(
@@ -52,9 +57,6 @@ setupPinia(pinia)`
   if (storeType === 'vuex') {
     if (!code.includes('createStore(')) return code
     return code.replace(
-      'createStore(',
-      `createStore(`
-    ).replace(
       'app.use(store)',
       `app.use(store)
 import { setupVuex } from 'virtual:vue-lens-store'
