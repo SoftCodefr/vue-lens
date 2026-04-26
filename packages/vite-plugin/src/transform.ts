@@ -5,14 +5,22 @@ export function transformSFC(code: string, id: string): string | null {
 
   // Injection du hook de render
   const injection = `
-import { onRenderTriggered } from 'vue'
+import { onRenderTriggered, onMounted, getCurrentInstance } from 'vue'
 import { collector } from '@softcodefr/vue-lens-core'
+
+const __vlUid = Math.random().toString(36).slice(2)
+
+onMounted(() => {
+  const el = getCurrentInstance()?.proxy?.$el
+  if (el?.setAttribute) el.setAttribute('data-vue-lens-id', __vlUid)
+})
 
 onRenderTriggered(() => {
   collector.emit({
     type: 'render',
     component: '${componentName}',
     file: '${id}',
+    uid: __vlUid,
     ts: Date.now()
   })
 })

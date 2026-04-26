@@ -1,7 +1,7 @@
 import { collector } from '@softcodefr/vue-lens-core'
 import type { DebugEvent } from '@softcodefr/vue-lens-core'
 
-const renderCounts: Record<string, number> = {}
+const instances: Record<string, { component: string; uid: string; count: number }> = {}
 const routeEvents: Array<{ from: string; to: string; ts: number }> = []
 const storeEvents: Array<{ store: string; event: string; ts: number }> = []
 const networkEvents: Array<{ method: string; url: string; status: number; duration: number; gql?: { operationName: string | null; operationType: string | null }; ts: number }> = []
@@ -9,7 +9,10 @@ const listeners: Array<() => void> = []
 
 collector.on((event: DebugEvent) => {
   if (event.type === 'render') {
-    renderCounts[event.component] = (renderCounts[event.component] ?? 0) + 1
+    if (!instances[event.uid]) {
+      instances[event.uid] = { component: event.component, uid: event.uid, count: 0 }
+    }
+    instances[event.uid].count++
   }
   if (event.type === 'route') {
     routeEvents.unshift({ from: event.from, to: event.to, ts: event.ts })
@@ -42,7 +45,7 @@ function subscribe(fn: () => void) {
 }
 
 function reset() {
-  Object.keys(renderCounts).forEach(k => delete renderCounts[k])
+  Object.keys(instances).forEach(k => delete instances[k])
   routeEvents.length = 0
   storeEvents.length = 0
   networkEvents.length = 0
@@ -50,7 +53,7 @@ function reset() {
 }
 
 function max() {
-  return Math.max(1, ...Object.values(renderCounts))
+  return Math.max(1, ...Object.values(instances).map(i => i.count))
 }
 
 function entries(counts: Record<string, number>, maxVal: number) {
@@ -101,17 +104,14 @@ function tabBtn(id: Tab, label: string) {
   `
 }
 
-let highlightEl: HTMLElement | null = null
+const highlightEls: HTMLElement[] = []
 
-function highlight(name: string) {
+function highlightByElement(target: HTMLElement, name: string) {
   clearHighlight()
-  const target = document.querySelector<HTMLElement>(`[data-vue-lens="${name}"]`)
-  if (!target) return
-
   const rect = target.getBoundingClientRect()
 
-  highlightEl = document.createElement('div')
-  highlightEl.style.cssText = `
+  const overlay = document.createElement('div')
+  overlay.style.cssText = `
     position: fixed;
     top: ${rect.top}px;
     left: ${rect.left}px;
@@ -122,7 +122,6 @@ function highlight(name: string) {
     background: rgba(167,139,250,0.08);
     pointer-events: none;
     z-index: 99998;
-    transition: all 0.15s ease;
   `
 
   const label = document.createElement('div')
@@ -139,16 +138,14 @@ function highlight(name: string) {
     white-space: nowrap;
   `
   label.textContent = `<${name}/>`
-  highlightEl.appendChild(label)
-
-  document.body.appendChild(highlightEl)
+  overlay.appendChild(label)
+  document.body.appendChild(overlay)
+  highlightEls.push(overlay)
 }
 
 function clearHighlight() {
-  if (highlightEl) {
-    highlightEl.remove()
-    highlightEl = null
-  }
+  highlightEls.forEach(el => el.remove())
+  highlightEls.length = 0
 }
 
 function mount() {
@@ -185,7 +182,12 @@ function mount() {
   el.addEventListener('mouseover', (e) => {
     const target = e.target as HTMLElement
     const row = target.closest<HTMLElement>('[data-component]')
-    if (row?.dataset.component) highlight(row.dataset.component)
+    if (row?.dataset.component) {
+      const uid = row.dataset.component
+      const target = document.querySelector<HTMLElement>(`[data-vue-lens-id="${uid}"]`)
+      if (!target) return
+      highlightByElement(target, instances[uid]?.component ?? '')
+    }
   })
   
   el.addEventListener('mouseout', (e) => {
@@ -252,23 +254,29 @@ function mount() {
         <div data-scroll style="padding:10px 12px;overflow-y:auto;flex:1;max-height:280px">
 
           ${activeTab === 'renders' ? `
-            ${entries(renderCounts, max()).length === 0
+            ${Object.values(instances).length === 0
               ? `<div style="color:#444;font-size:11px">No renders yet</div>`
-              : entries(renderCounts, max()).map(([name, count, pct]) => {
-                  const color = pct > 70 ? '#f97316' : pct > 30 ? '#a78bfa' : '#6b7280'
-                  return `
-                    <div data-component="${name}" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:default">
-                      <span style="color:#888;flex:1">&lt;${name}/&gt;</span>
-                      <div style="width:40px;height:3px;background:#1a1a1e;border-radius:2px">
-                        <div style="width:${pct}%;height:100%;background:${color};border-radius:2px"></div>
+              : Object.values(instances)
+                  .sort((a, b) => b.count - a.count)
+                  .map(instance => {
+                    const pct = Math.round((instance.count / max()) * 100)
+                    const color = pct > 70 ? '#f97316' : pct > 30 ? '#a78bfa' : '#6b7280'
+                    const shortUid = instance.uid.slice(0, 4)
+                    return `
+                      <div data-component="${instance.uid}" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:default">
+                        <span style="color:#888;flex:1">
+                          &lt;${instance.component}/&gt;
+                          <span style="color:#333">#${shortUid}</span>
+                        </span>
+                        <div style="width:40px;height:3px;background:#1a1a1e;border-radius:2px">
+                          <div style="width:${pct}%;height:100%;background:${color};border-radius:2px"></div>
+                        </div>
+                        <span style="color:${color};min-width:24px;text-align:right">${instance.count}</span>
                       </div>
-                      <span style="color:${color};min-width:24px;text-align:right">${count}</span>
-                    </div>
-                  `
-                }).join('')
+                    `
+                  }).join('')
             }
-
-          ` : activeTab === 'routes' ? `
+            ` : activeTab === 'routes' ? `
             ${routeEvents.length === 0
               ? `<div style="color:#444;font-size:11px">No navigation yet</div>`
               : routeEvents.map(e => {

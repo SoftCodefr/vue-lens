@@ -8,5 +8,6 @@
       <RouterLink to="/timer">Timer</RouterLink>
     </nav>
     <RouterView />
+    <RouterView />
   </div>
 </template>

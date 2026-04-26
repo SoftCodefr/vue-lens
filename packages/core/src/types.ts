@@ -2,6 +2,7 @@ export type RenderEvent = {
   type: 'render'
   component: string
   file: string
+  uid: string
   ts: number
 }
 
