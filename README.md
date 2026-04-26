@@ -148,8 +148,8 @@ pnpm dev
 - [x] Re-render tracking per component
 - [x] Automatic injection via Vite plugin
 - [x] Zero config setup
-- [ ] Pinia mutation tracking
-- [ ] Vue Router navigation tracking
+- [x] Pinia/VueX mutation tracking
+- [x] Vue Router navigation tracking
 - [ ] Network request tracking
 - [ ] Session sharing (cloud)
 
