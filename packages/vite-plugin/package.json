@@ -1,11 +1,33 @@
 {
   "name": "@softcodefr/vue-lens",
-  "version": "0.0.5",
+  "version": "0.0.6",
+  "description": "A Vite plugin for Vue.js debugging and inspection",
   "private": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "keywords": [
+    "vue",
+    "vite",
+    "vite-plugin",
+    "devtools",
+    "debugging",
+    "inspector",
+    "pinia",
+    "vue-router",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SoftCodefr/vue-lens.git",
+    "directory": "packages/vite-plugin"
+  },
+  "homepage": "https://github.com/SoftCodefr/vue-lens#readme",
+  "bugs": {
+    "url": "https://github.com/SoftCodefr/vue-lens/issues"
+  },
+  "license": "MIT",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsup src/index.ts src/panel.ts src/router.ts src/store.ts src/network.ts --format esm,cjs --dts",

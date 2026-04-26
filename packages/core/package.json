@@ -1,11 +1,29 @@
 {
   "name": "@softcodefr/vue-lens-core",
-  "version": "0.0.5",
+  "version": "0.0.6",
+  "description": "Core utilities for Vue Lens debugging tools",
   "private": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "keywords": [
+    "vue",
+    "vite",
+    "devtools",
+    "debugging",
+    "inspector"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SoftCodefr/vue-lens.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/SoftCodefr/vue-lens#readme",
+  "bugs": {
+    "url": "https://github.com/SoftCodefr/vue-lens/issues"
+  },
+  "license": "MIT",
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "typecheck": "tsc --noEmit",
