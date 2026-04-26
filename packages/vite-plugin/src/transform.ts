@@ -1,7 +1,8 @@
 export function transformSFC(code: string, id: string): string | null {
   if (!code.includes('<script setup')) return null
 
-  const componentName = id.split('/').pop()?.replace('.vue', '') ?? 'Unknown'
+  const fileName = id.split('/').pop()?.replace('.vue', '') || ''
+  const componentName = fileName || 'Unknown'
 
   // Injection du hook de render
   const injection = `
