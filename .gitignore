@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+*.tsbuildinfo
+
+# Logs & debug
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment (keep .env.example if you add one)
+.env
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# Vite
+playground/dist
+
+# Optional: test coverage (Vitest, etc.)
+coverage

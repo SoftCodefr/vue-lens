@@ -1,0 +1,26 @@
+{
+  "name": "@vue-debug/vite-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsup src/index.ts src/panel.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts src/panel.ts --format esm,cjs --dts --watch"
+  },
+  "dependencies": {
+    "@vue-debug/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.0.0"
+  },
+  "peerDependencies": {
+    "vite": "^5.0.0"
+  }
+}
