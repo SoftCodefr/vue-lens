@@ -3,6 +3,7 @@ export type RenderEvent = {
   component: string
   file: string
   uid: string
+  reason: string | null
   ts: number
 }
 

@@ -15,12 +15,13 @@ onMounted(() => {
   if (el?.setAttribute) el.setAttribute('data-vue-lens-id', __vlUid)
 })
 
-onRenderTriggered(() => {
+onRenderTriggered((event: any) => {
   collector.emit({
     type: 'render',
     component: '${componentName}',
     file: '${id}',
     uid: __vlUid,
+    reason: event.key ? String(event.key) : null,
     ts: Date.now()
   })
 })

@@ -50,7 +50,7 @@ export function vueLens(options: VueLensOptions = {}): Plugin {
 
     load(id) {
       if (id === '\0virtual:vue-lens-panel') {
-        return readFileSync(resolve(__dirname, 'panel.js'), 'utf-8')
+        return readFileSync(resolve(__dirname, 'panel/index.js'), 'utf-8')
       }
       if (id === '\0virtual:vue-lens-router') {
         return readFileSync(resolve(__dirname, 'router.js'), 'utf-8')
