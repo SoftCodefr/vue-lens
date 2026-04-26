@@ -41,6 +41,14 @@ function subscribe(fn: () => void) {
   }
 }
 
+function reset() {
+  Object.keys(renderCounts).forEach(k => delete renderCounts[k])
+  routeEvents.length = 0
+  storeEvents.length = 0
+  networkEvents.length = 0
+  listeners.forEach(fn => fn())
+}
+
 function max() {
   return Math.max(1, ...Object.values(renderCounts))
 }
@@ -130,6 +138,10 @@ function mount() {
       activeTab = target.dataset.tab as Tab
       render()
     }
+    if (target.dataset.reset !== undefined) {
+      e.stopPropagation()   // empêche le toggle du panel
+      reset()
+    }
     if (target.dataset.toggle !== undefined) {
       isOpen = !isOpen
       render()
@@ -143,8 +155,8 @@ function mount() {
   const scrollTop = scrollEl?.scrollTop ?? 0
 
     el.innerHTML = `
-      <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" data-toggle>
-        <span style="display:inline-flex;align-items:center;gap:6px;pointer-events:none">
+      <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;" >
+        <div data-toggle style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1">
           <span style="
             display:inline-block;
             width:6px;height:6px;
@@ -153,8 +165,18 @@ function mount() {
             animation:vl-pulse 2s ease-in-out infinite;
           "></span>
           <span style="color:#555;letter-spacing:0.1em;text-transform:uppercase;font-size:10px">@SoftCode/vue-lens</span>
-        </span>
-        <span style="color:#444;font-size:10px;pointer-events:none">${isOpen ? '▾' : '▸'}</span>
+          <span style="color:#444;font-size:10px;margin-left:auto">${isOpen ? '▾' : '▸'}</span>
+        </div>
+        <button data-reset style="
+          background:none;
+          border:none;
+          color:#444;
+          font-family:monospace;
+          font-size:10px;
+          cursor:pointer;
+          padding:0 0 0 12px;
+          letter-spacing:0.05em;
+        ">reset ↺</button>
       </div>
 
       ${isOpen ? `
