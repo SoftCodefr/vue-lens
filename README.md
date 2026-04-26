@@ -1,4 +1,4 @@
-# vue-debug
+# SoftCodefr/vuelens
 
 > Zero-config re-render tracker for Vue 3. Add one line to your Vite config, see every component re-render in real time.
 
