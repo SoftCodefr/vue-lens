@@ -4,7 +4,7 @@ Development-only Vue 3 inspector for renders, route changes, store mutations, an
 
 `@softcodefr/vue-lens` is a Vite plugin that injects a floating debug panel into a Vue app during local development. It runs only in `vite dev` and is excluded from production builds.
 
-![screen](https://github.com/SoftCodefr/vue-lens/blob/main/packages/vite-plugin/assets/screen.png?raw=true)
+![screen](https://github.com/SoftCodefr/vue-lens/blob/main/assets/screen.png?raw=true)
 
 ## Installation
 

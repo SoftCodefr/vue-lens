@@ -8,15 +8,7 @@
 
 `@softcodefr/vue-lens` is a Vite plugin that injects a floating debug panel into your Vue app during local development. It requires no component changes and is excluded from production builds.
 
-```
-┌─ @SoftCode/vue-lens ─────────────┐
-│ renders  routes  store  network  │
-│                                  │
-│ <TimerCard/>          ████  24   │
-│ <CounterCard/>        ██    8    │
-│ <App/>                █     2    │
-└──────────────────────────────────┘
-```
+![sreen](./assets/screen.png)
 
 ## Features
 
