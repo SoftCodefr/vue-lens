@@ -36,6 +36,6 @@ export function vueDebug(): Plugin {
       }
 
       return null
-    }
+    },
   }
 }

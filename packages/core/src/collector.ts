@@ -16,13 +16,13 @@ class Collector {
     if (this.buffer.length > this.maxSize) {
       this.buffer.shift()
     }
-    this.listeners.forEach(fn => fn(event))
+    this.listeners.forEach((fn) => fn(event))
   }
 
   on(fn: Listener) {
     this.listeners.push(fn)
     return () => {
-      this.listeners = this.listeners.filter(l => l !== fn)
+      this.listeners = this.listeners.filter((l) => l !== fn)
     }
   }
 

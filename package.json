@@ -4,9 +4,12 @@
   "scripts": {
     "dev": "pnpm --filter playground dev",
     "build": "pnpm --filter './packages/*' build",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "typecheck": "pnpm --filter './packages/*' typecheck"
   },
   "devDependencies": {
+    "prettier": "^3.8.3",
     "typescript": "^5.4.0"
   }
 }

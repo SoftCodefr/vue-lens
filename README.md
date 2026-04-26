@@ -41,8 +41,8 @@ import { vueDebug } from '@softcodefr/vue-lens-vite-plugin'
 export default defineConfig({
   plugins: [
     vue(),
-    vueDebug()   // that's it
-  ]
+    vueDebug(), // that's it
+  ],
 })
 ```
 
