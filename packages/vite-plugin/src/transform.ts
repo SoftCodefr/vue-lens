@@ -4,7 +4,7 @@ export function transformSFC(code: string, id: string): string | null {
   
     const injection = `
   import { onRenderTriggered } from 'vue'
-  import { collector } from '@vue-debug/core'
+  import { collector } from '@softcodefr/vue-lens-core'
   
   onRenderTriggered(() => {
     collector.emit({

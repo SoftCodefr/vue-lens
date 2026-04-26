@@ -7,8 +7,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@vue-debug/core": "workspace:*",
-    "@vue-debug/vite-plugin": "workspace:*",
+    "@softcodefr/vue-lens-core": "workspace:*",
+    "@softcodefr/vue-lens-vite-plugin": "workspace:*",
     "vue": "^3.4.0"
   },
   "devDependencies": {

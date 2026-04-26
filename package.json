@@ -1,5 +1,5 @@
 {
-  "name": "vue-debug-monorepo",
+  "name": "@softcodefr/vue-lens-monorepo",
   "private": true,
   "scripts": {
     "dev": "pnpm --filter playground dev",

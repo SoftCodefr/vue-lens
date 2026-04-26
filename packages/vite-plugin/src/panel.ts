@@ -1,5 +1,5 @@
-import { collector } from '@vue-debug/core'
-import type { DebugEvent } from '@vue-debug/core'
+import { collector } from '@softcodefr/vue-lens-core'
+import type { DebugEvent } from '@softcodefr/vue-lens-core'
 
 const counts: Record<string, number> = {}
 const listeners: Array<() => void> = []
@@ -46,7 +46,7 @@ function mount() {
 
     el.innerHTML = `
       <div style="color:#555;letter-spacing:0.1em;text-transform:uppercase;font-size:10px;margin-bottom:10px">
-        ● vue-debug
+        ● SoftCode/vue-lens
       </div>
       ${entries.map(([name, count]) => {
         const pct = Math.round((count / max) * 100)

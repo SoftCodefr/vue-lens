@@ -1,5 +1,5 @@
 {
-  "name": "@vue-debug/core",
+  "name": "@softcodefr/vue-lens-core",
   "version": "0.0.1",
   "private": true,
   "type": "module",

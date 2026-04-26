@@ -1,4 +1,4 @@
-# SoftCodefr/vuelens
+# SoftCodefr/vue-lens
 
 > Zero-config re-render tracker for Vue 3. Add one line to your Vite config, see every component re-render in real time.
 
@@ -10,10 +10,10 @@
 
 ## What it does
 
-vue-debug injects a floating panel into your app during development. It tracks how many times each component re-renders and displays the results in real time — no component modifications required.
+@softcodefr/vue-lens injects a floating panel into your app during development. It tracks how many times each component re-renders and displays the results in real time — no component modifications required.
 
 ```
-┌─ vue-debug ──────────────────────┐
+┌─ @softcodefr/vue-lens-core ──────┐
 │  <TimerCard/>          ████  24  │
 │  <CounterCard/>        ██    8   │
 │  <App/>                █     2   │
@@ -25,7 +25,7 @@ vue-debug injects a floating panel into your app during development. It tracks h
 ## Installation
 
 ```bash
-pnpm add -D @vue-debug/vite-plugin
+pnpm add -D @softcodefr/vue-lens-vite-plugin
 ```
 
 ---
@@ -36,7 +36,7 @@ pnpm add -D @vue-debug/vite-plugin
 // vite.config.ts
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { vueDebug } from '@vue-debug/vite-plugin'
+import { vueDebug } from '@softcodefr/vue-lens-vite-plugin'
 
 export default defineConfig({
   plugins: [
@@ -65,7 +65,7 @@ const count = ref(0)
 <!-- what Vite actually compiles -->
 <script setup>
 import { onRenderTriggered } from 'vue'
-import { collector } from '@vue-debug/core'
+import { collector } from '@softcodefr/vue-lens-core'
 
 onRenderTriggered(() => {
   collector.emit({ type: 'render', component: 'MyComponent', ... })
@@ -82,19 +82,19 @@ const count = ref(0)
 ## Monorepo structure
 
 ```
-vue-debug/
+@softcodefr/vue-lens/
 ├── packages/
 │   ├── core/           # Event collector & ring buffer
 │   └── vite-plugin/    # Vite plugin + SFC transform + panel UI
 └── playground/         # Vue 3 app for local development
 ```
 
-### `@vue-debug/core`
+### `@softcodefr/vue-lens-core`
 
 Framework-agnostic event bus. Collects render events in a fixed-size ring buffer (default: 200 events) and notifies subscribers in real time.
 
 ```ts
-import { collector } from '@vue-debug/core'
+import { collector } from '@softcodefr/vue-lens-core'
 
 // subscribe to events
 const unsubscribe = collector.on((event) => {
@@ -108,7 +108,7 @@ collector.getBuffer()
 collector.reset()
 ```
 
-### `@vue-debug/vite-plugin`
+### `@softcodefr/vue-lens-vite-plugin`
 
 Vite plugin that handles transform, virtual module resolution, and panel injection. Only active during `vite dev` (`apply: 'serve'`).
 

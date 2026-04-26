@@ -23,7 +23,7 @@ importers:
 
   packages/vite-plugin:
     dependencies:
-      '@vue-debug/core':
+      '@softcodefr/vue-lens-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -42,10 +42,10 @@ importers:
 
   playground:
     dependencies:
-      '@vue-debug/core':
+      '@softcodefr/vue-lens-core':
         specifier: workspace:*
         version: link:../packages/core
-      '@vue-debug/vite-plugin':
+      '@softcodefr/vue-lens-vite-plugin':
         specifier: workspace:*
         version: link:../packages/vite-plugin
       vue:
