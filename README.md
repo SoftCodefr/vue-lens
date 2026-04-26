@@ -13,7 +13,7 @@
 @softcodefr/vue-lens injects a floating panel into your app during development. It tracks how many times each component re-renders and displays the results in real time — no component modifications required.
 
 ```
-┌─ @softcodefr/vue-lens-core ──────┐
+┌─ @SoftCode/vue-lens ─────────────┐
 │  <TimerCard/>          ████  24  │
 │  <CounterCard/>        ██    8   │
 │  <App/>                █     2   │
