@@ -4,6 +4,7 @@ import type { DebugEvent } from '@softcodefr/vue-lens-core'
 const renderCounts: Record<string, number> = {}
 const routeEvents: Array<{ from: string; to: string; ts: number }> = []
 const storeEvents: Array<{ store: string; event: string; ts: number }> = []
+const networkEvents: Array<{ method: string; url: string; status: number; duration: number; gql?: { operationName: string | null; operationType: string | null }; ts: number }> = []
 const listeners: Array<() => void> = []
 
 collector.on((event: DebugEvent) => {
@@ -17,6 +18,17 @@ collector.on((event: DebugEvent) => {
   if (event.type === 'store') {
     storeEvents.unshift({ store: event.store, event: event.event, ts: event.ts })
     if (storeEvents.length > 10) storeEvents.pop()
+  }
+  if (event.type === 'network') {
+    networkEvents.unshift({
+      method: event.method,
+      url: event.url,
+      status: event.status,
+      duration: event.duration,
+      ...(event.gql ? { gql: event.gql } : {}),
+      ts: event.ts
+    })
+    if (networkEvents.length > 20) networkEvents.pop()
   }
   listeners.forEach(fn => fn())
 })
@@ -39,7 +51,34 @@ function entries(counts: Record<string, number>, maxVal: number) {
     .map(([name, count]) => [name, count, Math.round((count / maxVal) * 100)] as const)
 }
 
-type Tab = 'renders' | 'routes' | 'store'
+function statusColor(status: number): string {
+  if (status >= 500) return '#ef4444'
+  if (status >= 400) return '#f97316'
+  if (status >= 300) return '#facc15'
+  return '#22c55e'
+}
+
+function methodColor(method: string): string {
+  switch (method) {
+    case 'GET':    return '#22c55e'
+    case 'POST':   return '#a78bfa'
+    case 'PUT':    return '#facc15'
+    case 'PATCH':  return '#fb923c'
+    case 'DELETE': return '#ef4444'
+    default:       return '#6b7280'
+  }
+}
+
+function shortUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    return u.pathname
+  } catch {
+    return url
+  }
+}
+
+type Tab = 'renders' | 'routes' | 'store' | 'network'
 let activeTab: Tab = 'renders'
 let isOpen = true
 
@@ -67,7 +106,7 @@ function mount() {
     background: rgba(10,10,12,0.95);
     border: 1px solid #222;
     border-radius: 10px;
-    min-width: 260px;
+    min-width: 300px;
     color: #e2e0d8;
     backdrop-filter: blur(8px);
     overflow: hidden;
@@ -120,9 +159,11 @@ function mount() {
           ${tabBtn('renders', 'renders')}
           ${tabBtn('routes', 'routes')}
           ${tabBtn('store', 'store')}
+          ${tabBtn('network', 'network')}
         </div>
 
         <div style="padding:10px 12px;overflow-y:auto;flex:1;max-height:280px">
+
           ${activeTab === 'renders' ? `
             ${entries(renderCounts, max()).length === 0
               ? `<div style="color:#444;font-size:11px">No renders yet</div>`
@@ -139,6 +180,7 @@ function mount() {
                   `
                 }).join('')
             }
+
           ` : activeTab === 'routes' ? `
             ${routeEvents.length === 0
               ? `<div style="color:#444;font-size:11px">No navigation yet</div>`
@@ -154,7 +196,8 @@ function mount() {
                   `
                 }).join('')
             }
-          ` : `
+
+          ` : activeTab === 'store' ? `
             ${storeEvents.length === 0
               ? `<div style="color:#444;font-size:11px">No mutations yet</div>`
               : storeEvents.map(e => {
@@ -169,7 +212,34 @@ function mount() {
                   `
                 }).join('')
             }
+
+          ` : `
+            ${networkEvents.length === 0
+              ? `<div style="color:#444;font-size:11px">No requests yet</div>`
+              : networkEvents.map(e => {
+                  const time = new Date(e.ts).toLocaleTimeString('fr')
+                  const url = shortUrl(e.url)
+                  const sc = statusColor(e.status)
+                  const mc = methodColor(e.method)
+                  const isGql = !!e.gql
+                  return `
+                    <div style="margin-bottom:10px;line-height:1.7;border-left:2px solid #1a1a1e;padding-left:8px">
+                      <div style="display:flex;align-items:center;gap:6px">
+                        <span style="color:${mc};font-size:10px;font-weight:bold">${isGql ? 'GQL' : e.method}</span>
+                        <span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.url}">${isGql && e.gql?.operationName ? e.gql.operationName : url}</span>
+                        <span style="color:${sc};font-size:10px">${e.status}</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+                        <span style="color:#444;font-size:10px">${time}</span>
+                        <span style="color:#333;font-size:10px">${e.duration}ms</span>
+                        ${isGql ? `<span style="color:#6b7280;font-size:10px">${e.gql?.operationType ?? ''}</span>` : ''}
+                      </div>
+                    </div>
+                  `
+                }).join('')
+            }
           `}
+
         </div>
 
         <div style="flex-shrink:0;padding:0 8px 8px;display:flex;justify-content:flex-end">

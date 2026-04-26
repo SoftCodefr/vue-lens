@@ -1,4 +1,4 @@
-# SoftCodefr/vue-lens
+# @SoftCodefr/vue-lens
 
 > Zero-config re-render tracker for Vue 3. Add one line to your Vite config, see every component re-render in real time.
 
@@ -150,7 +150,7 @@ pnpm dev
 - [x] Zero config setup
 - [x] Pinia/VueX mutation tracking
 - [x] Vue Router navigation tracking
-- [ ] Network request tracking
+- [x] Network request tracking
 - [ ] Session sharing (cloud)
 
 ---

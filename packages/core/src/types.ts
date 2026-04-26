@@ -19,4 +19,17 @@ export type StoreEvent = {
   ts: number
 }
 
-export type DebugEvent = RenderEvent | RouteEvent | StoreEvent
+export type NetworkEvent = {
+  type: 'network'
+  method: string
+  url: string
+  status: number
+  duration: number
+  gql?: {
+    operationName: string | null
+    operationType: 'query' | 'mutation' | 'subscription' | null
+  }
+  ts: number
+}
+
+export type DebugEvent = RenderEvent | RouteEvent | StoreEvent | NetworkEvent
