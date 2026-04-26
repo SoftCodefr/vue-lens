@@ -1,34 +1,37 @@
-# @SoftCodefr/vue-lens
+# @softcodefr/vue-lens
 
-> Zero-config re-render tracker for Vue 3. Add one line to your Vite config, see every component re-render in real time.
+> Development-only Vue 3 inspector for renders, route changes, store mutations, and network requests.
 
 ![status](https://img.shields.io/badge/status-poc-orange)
 ![vue](https://img.shields.io/badge/vue-3.x-brightgreen)
 ![vite](https://img.shields.io/badge/vite-5.x-646cff)
 
----
-
-## What it does
-
-@softcodefr/vue-lens injects a floating panel into your app during development. It tracks how many times each component re-renders and displays the results in real time — no component modifications required.
+`@softcodefr/vue-lens` is a Vite plugin that injects a floating debug panel into your Vue app during local development. It requires no component changes and is excluded from production builds.
 
 ```
 ┌─ @SoftCode/vue-lens ─────────────┐
-│  <TimerCard/>          ████  24  │
-│  <CounterCard/>        ██    8   │
-│  <App/>                █     2   │
+│ renders  routes  store  network  │
+│                                  │
+│ <TimerCard/>          ████  24   │
+│ <CounterCard/>        ██    8    │
+│ <App/>                █     2    │
 └──────────────────────────────────┘
 ```
 
----
+## Features
+
+- Tracks Vue component re-renders from `<script setup>` components.
+- Shows Vue Router navigations when router tracking is enabled.
+- Shows Pinia or Vuex mutations when store tracking is enabled.
+- Shows `fetch` requests, status codes, durations, and basic GraphQL metadata when network tracking is enabled.
+- Keeps recent events in a small in-memory collector.
+- Runs only in `vite dev` via `apply: 'serve'`.
 
 ## Installation
 
 ```bash
-pnpm add -D @softcodefr/vue-lens-vite-plugin
+pnpm add -D @softcodefr/vue-lens
 ```
-
----
 
 ## Setup
 
@@ -36,83 +39,153 @@ pnpm add -D @softcodefr/vue-lens-vite-plugin
 // vite.config.ts
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { vueDebug } from '@softcodefr/vue-lens-vite-plugin'
+import { vueLens } from '@softcodefr/vue-lens'
 
 export default defineConfig({
   plugins: [
     vue(),
-    vueDebug(), // that's it
+    vueLens(),
   ],
 })
 ```
 
-The panel appears automatically in development. It is never included in production builds.
+The panel appears automatically in development. It mounts itself into the DOM, so you do not need to add a Vue component to your app.
 
----
+## Options
 
-## How it works
+Render tracking is enabled by default. Router, store, and network tracking are opt-in.
 
-The plugin operates in two steps at dev server startup.
+```ts
+vueLens({
+  router: true,
+  store: true,
+  network: true,
+})
+```
 
-**Transform** — for every `.vue` file with a `<script setup>`, the plugin injects `onRenderTriggered` automatically:
+| Option | Default | Description |
+| --- | --- | --- |
+| `router` | `false` | Tracks Vue Router navigations by instrumenting `router.afterEach`. |
+| `store` | `false` | Tracks Pinia or Vuex mutations. The plugin detects `pinia` or `vuex` from `package.json`. |
+| `network` | `false` | Wraps `window.fetch` to track requests, response status, duration, and GraphQL operation info when available. |
+
+### Router Tracking
+
+Router tracking expects the app entry to contain the usual pattern:
+
+```ts
+app.use(router)
+```
+
+When enabled, the plugin injects `setupVueLensRouter(router)` after that call.
+
+### Store Tracking
+
+Store tracking currently supports Pinia and Vuex.
+
+For Pinia, the plugin looks for:
+
+```ts
+const pinia = createPinia()
+app.use(pinia)
+```
+
+For Vuex, the plugin looks for:
+
+```ts
+const store = createStore({})
+app.use(store)
+```
+
+### Network Tracking
+
+Network tracking wraps `window.fetch`. It records:
+
+- HTTP method
+- URL
+- response status
+- request duration
+- GraphQL operation name and type when the request body contains a GraphQL query
+
+## How It Works
+
+The Vite plugin transforms Vue SFCs and the app entry during development.
+
+For every `.vue` file with a `<script setup>`, it injects `onRenderTriggered`:
 
 ```vue
-<!-- your component — untouched -->
+<!-- your component -->
 <script setup>
 const count = ref(0)
 </script>
 
-<!-- what Vite actually compiles -->
+<!-- compiled by Vite with vue-lens enabled -->
 <script setup>
 import { onRenderTriggered } from 'vue'
 import { collector } from '@softcodefr/vue-lens-core'
 
 onRenderTriggered(() => {
-  collector.emit({ type: 'render', component: 'MyComponent', ... })
+  collector.emit({
+    type: 'render',
+    component: 'MyComponent',
+    file: '/path/to/MyComponent.vue',
+    ts: Date.now(),
+  })
 })
 
 const count = ref(0)
 </script>
 ```
 
-**Panel injection** — the plugin injects a virtual module import into `main.ts` at runtime. The panel mounts itself into the DOM with no `<VueDebugPanel />` component to add anywhere.
+The plugin also injects a virtual panel module into `main.ts` or `main.js`. The panel subscribes to the collector and renders the latest debug information in the browser.
 
----
+## Collector API
 
-## Monorepo structure
-
-```
-@softcodefr/vue-lens/
-├── packages/
-│   ├── core/           # Event collector & ring buffer
-│   └── vite-plugin/    # Vite plugin + SFC transform + panel UI
-└── playground/         # Vue 3 app for local development
-```
-
-### `@softcodefr/vue-lens-core`
-
-Framework-agnostic event bus. Collects render events in a fixed-size ring buffer (default: 200 events) and notifies subscribers in real time.
+`@softcodefr/vue-lens-core` exposes the event collector used by the panel.
 
 ```ts
 import { collector } from '@softcodefr/vue-lens-core'
 
-// subscribe to events
 const unsubscribe = collector.on((event) => {
-  console.log(event) // { type: 'render', component: 'MyComponent', file: '...', ts: 1234567890 }
+  console.log(event)
 })
 
-// read the buffer
-collector.getBuffer()
+const events = collector.getBuffer()
 
-// reset
 collector.reset()
+unsubscribe()
 ```
 
-### `@softcodefr/vue-lens-vite-plugin`
+Event types currently emitted:
 
-Vite plugin that handles transform, virtual module resolution, and panel injection. Only active during `vite dev` (`apply: 'serve'`).
+```ts
+type DebugEvent =
+  | { type: 'render'; component: string; file: string; ts: number }
+  | { type: 'route'; from: string; to: string; ts: number }
+  | { type: 'store'; store: string; event: string; ts: number }
+  | {
+      type: 'network'
+      method: string
+      url: string
+      status: number
+      duration: number
+      gql?: {
+        operationName: string | null
+        operationType: 'query' | 'mutation' | 'subscription' | null
+      }
+      ts: number
+    }
+```
 
----
+## Monorepo Structure
+
+```
+@softcodefr/vue-lens/
+├── packages/
+│   ├── core/           # Event collector and debug event types
+│   └── vite-plugin/    # Vite plugin, transforms, virtual modules, panel UI
+└── playground/         # Vue 3 app for local development
+```
 
 ## Development
 
@@ -123,37 +196,45 @@ pnpm install
 # build all packages
 pnpm build
 
+# run type checks
+pnpm typecheck
+
 # start the playground
 pnpm dev
 ```
 
-To work on a package with live rebuild:
+To work on the Vite plugin with live rebuilds:
 
 ```bash
 cd packages/vite-plugin
-pnpm dev   # tsup --watch
+pnpm dev
 ```
 
-Then in another terminal:
+Then start the playground in another terminal:
 
 ```bash
 cd playground
 pnpm dev
 ```
 
----
+## Current Limitations
+
+- Render tracking only instruments Vue SFCs that use `<script setup>`.
+- Entry-file transforms currently target `main.ts` and `main.js`.
+- Router and store instrumentation expects common setup names such as `router`, `pinia`, and `store`.
+- Network tracking currently covers `window.fetch`, not `XMLHttpRequest`.
 
 ## Roadmap
 
 - [x] Re-render tracking per component
 - [x] Automatic injection via Vite plugin
-- [x] Zero config setup
-- [x] Pinia/VueX mutation tracking
+- [x] Floating development panel
 - [x] Vue Router navigation tracking
+- [x] Pinia/Vuex mutation tracking
 - [x] Network request tracking
-- [ ] Session sharing (cloud)
-
----
+- [ ] Session sharing
+- [ ] More robust app entry detection
+- [ ] Component support beyond `<script setup>`
 
 ## License
 

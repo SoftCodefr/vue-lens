@@ -45,12 +45,12 @@ importers:
 
   playground:
     dependencies:
+      '@softcodefr/vue-lens':
+        specifier: workspace:*
+        version: link:../packages/vite-plugin
       '@softcodefr/vue-lens-core':
         specifier: workspace:*
         version: link:../packages/core
-      '@softcodefr/vue-lens-vite-plugin':
-        specifier: workspace:*
-        version: link:../packages/vite-plugin
       pinia:
         specifier: ^3.0.4
         version: 3.0.4(typescript@5.9.3)(vue@3.5.33(typescript@5.9.3))

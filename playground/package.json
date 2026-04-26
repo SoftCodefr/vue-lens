@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@softcodefr/vue-lens-core": "workspace:*",
-    "@softcodefr/vue-lens-vite-plugin": "workspace:*",
+    "@softcodefr/vue-lens": "workspace:*",
     "pinia": "^3.0.4",
     "vue": "^3.4.0",
     "vue-router": "^5.0.6"
