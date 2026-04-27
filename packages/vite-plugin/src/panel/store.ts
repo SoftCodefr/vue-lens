@@ -1,39 +1,11 @@
 import { collector } from '@softcodefr/vue-lens-core'
-import type { DebugEvent } from '@softcodefr/vue-lens-core'
+import type { DebugEvent, InteractionEvent, NetworkEvent, StoreEvent, RouteEvent } from '@softcodefr/vue-lens-core'
 
 export interface Instance {
   component: string
   uid: string
   count: number
   lastReason: string | null
-}
-
-export interface RouteEvent {
-  from: string
-  to: string
-  ts: number
-}
-
-export interface StoreEvent {
-  store: string
-  event: string
-  ts: number
-}
-
-export interface NetworkEvent {
-  method: string
-  url: string
-  status: number
-  duration: number
-  gql?: { operationName: string | null; operationType: string | null }
-  ts: number
-}
-
-export interface InteractionEvent {
-  kind: 'click' | 'input' | 'submit'
-  target: string
-  component: string | null
-  ts: number
 }
 
 export type TriggerEvent = InteractionEvent | NetworkEvent
@@ -53,6 +25,7 @@ class PanelStore {
   storeEvents: StoreEvent[] = []
   networkEvents: NetworkEvent[] = []
   timelineGroups: TimelineGroup[] = []
+  private pendingEvents: DebugEvent[] = []
   private currentGroup: TimelineGroup | null = null
   private readonly WINDOW_MS = 100
 
@@ -73,13 +46,14 @@ class PanelStore {
         }
       }
       if (event.type === 'route') {
-        this.routeEvents = [{ from: event.from, to: event.to, ts: event.ts }, ...this.routeEvents].slice(0, 10)
+        this.routeEvents = [{ type: 'route', from: event.from, to: event.to, ts: event.ts }, ...this.routeEvents].slice(0, 10)
       }
       if (event.type === 'store') {
-        this.storeEvents = [{ store: event.store, event: event.event, ts: event.ts }, ...this.storeEvents].slice(0, 10)
+        this.storeEvents = [{ type: 'store', store: event.store, event: event.event, ts: event.ts }, ...this.storeEvents].slice(0, 10)
       }
       if (event.type === 'network') {
         this.networkEvents = [{
+          type: 'network',
           method: event.method,
           url: event.url,
           status: event.status,
@@ -103,8 +77,15 @@ class PanelStore {
   
       if (['render', 'route', 'store'].includes(event.type)) {
         if (this.currentGroup && event.ts - this.currentGroup.ts <= this.WINDOW_MS) {
+          // Event après le trigger → ajout normal
           this.currentGroup.children.push(event)
           this.timelineGroups = [...this.timelineGroups]
+        } else {
+          // Event avant le trigger → on le met dans un buffer
+          this.pendingEvents.push(event)
+          // Nettoie les events trop vieux
+          const now = Date.now()
+          this.pendingEvents = this.pendingEvents.filter(e => now - e.ts <= this.WINDOW_MS)
         }
       }
       this.notify()
@@ -129,6 +110,7 @@ class PanelStore {
     this.networkEvents = []
     this.timelineGroups = []
     this.currentGroup = null
+    this.pendingEvents = []
     this.notify()
   }
 
@@ -140,9 +122,11 @@ class PanelStore {
     const group: TimelineGroup = {
       id: Math.random().toString(36).slice(2),
       trigger,
-      children: [],
+      // Récupère les events en attente dans la fenêtre temporelle
+      children: this.pendingEvents.filter(e => trigger.ts - e.ts <= this.WINDOW_MS),
       ts: trigger.ts
     }
+    this.pendingEvents = []
     this.currentGroup = group
     this.timelineGroups = [group, ...this.timelineGroups].slice(0, 50)
   }

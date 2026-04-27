@@ -3,6 +3,7 @@ import './tabs/RendersTab'
 import './tabs/RoutesTab'
 import './tabs/StoreTab'
 import './tabs/NetworkTab'
+import { mountTimeline } from './timeline/index'
 
 type Tab = 'renders' | 'routes' | 'store' | 'network'
 const TABS: Tab[] = ['renders', 'routes', 'store', 'network']
@@ -13,9 +14,19 @@ class VueLensPanel extends HTMLElement {
   private isDragging = false
   private dragOffsetX = 0
   private dragOffsetY = 0
+  private timelineOpen = false
+  private timelineEl: HTMLElement | null = null
 
   connectedCallback() {
     this.attachShadow({ mode: 'open' })
+  
+    this.timelineEl = mountTimeline()
+    this.timelineEl!.addEventListener('vl-timeline-close', () => {
+      this.timelineOpen = false
+      this.timelineEl!.style.display = 'none'
+      this.render()
+    })
+  
     this.render()
     this.shadowRoot!.addEventListener('click', (e) => this.handleClick(e))
     this.setupDrag()
@@ -73,10 +84,20 @@ class VueLensPanel extends HTMLElement {
       return
     }
 
+    if (target.dataset.timeline !== undefined) {
+      this.timelineOpen = !this.timelineOpen
+      if (this.timelineEl) {
+        this.timelineEl.style.display = this.timelineOpen ? 'block' : 'none'
+      }
+      this.render()
+      return
+    }
+
     if (target.dataset.tab) {
       this.activeTab = target.dataset.tab as Tab
       this.render()
     }
+    
   }
 
   private render() {
@@ -164,6 +185,27 @@ class VueLensPanel extends HTMLElement {
 
         .reset-btn:hover { color: #888; }
 
+        .timeline-btn {
+          background: none;
+          border: 1px solid transparent;
+          color: #444;
+          font-family: monospace;
+          font-size: 10px;
+          cursor: pointer;
+          padding: 2px 8px;
+          border-radius: 4px;
+          letter-spacing: 0.05em;
+          transition: all 0.15s;
+        }
+
+        .timeline-btn:hover { color: #888; }
+
+        .timeline-btn.active {
+          background: #1e1e24;
+          border-color: #333;
+          color: #a78bfa;
+        }
+
         .tabs {
           padding: 0 12px 6px;
           display: flex;
@@ -221,6 +263,10 @@ class VueLensPanel extends HTMLElement {
             <span class="title">@SoftCode/vue-lens</span>
             <span class="chevron">${this.isOpen ? '▾' : '▸'}</span>
           </div>
+          <button
+            class="timeline-btn ${this.timelineOpen ? 'active' : ''}"
+            data-timeline
+          >timeline</button>
           <button class="reset-btn" data-reset>reset ↺</button>
         </div>
 
