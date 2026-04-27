@@ -1,6 +1,6 @@
 {
   "name": "@softcodefr/vue-lens",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "A Vite plugin for Vue.js debugging and inspection",
   "private": false,
   "type": "module",
@@ -37,8 +37,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@softcodefr/vue-lens-core": "workspace:*",
-    "lit": "^3.3.2"
+    "@softcodefr/vue-lens-core": "workspace:*"
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.6",
