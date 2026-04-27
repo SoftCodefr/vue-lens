@@ -27,9 +27,11 @@ export type NetworkEvent = {
   url: string
   status: number
   duration: number
+  callKey: string
   gql?: {
     operationName: string | null
     operationType: 'query' | 'mutation' | 'subscription' | null
+    variables?: Record<string, unknown>
   }
   ts: number
 }

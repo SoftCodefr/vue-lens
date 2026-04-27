@@ -24,6 +24,7 @@ class PanelStore {
   routeEvents: RouteEvent[] = []
   storeEvents: StoreEvent[] = []
   networkEvents: NetworkEvent[] = []
+  networkCallCounts: Record<string, number> = {}
   timelineGroups: TimelineGroup[] = []
   private pendingEvents: DebugEvent[] = []
   private currentGroup: TimelineGroup | null = null
@@ -46,21 +47,16 @@ class PanelStore {
         }
       }
       if (event.type === 'route') {
-        this.routeEvents = [{ type: 'route', from: event.from, to: event.to, ts: event.ts }, ...this.routeEvents].slice(0, 10)
+        this.routeEvents = [{ type: 'route' as const, from: event.from, to: event.to, ts: event.ts }, ...this.routeEvents].slice(0, 50)
       }
       if (event.type === 'store') {
-        this.storeEvents = [{ type: 'store', store: event.store, event: event.event, ts: event.ts }, ...this.storeEvents].slice(0, 10)
+        this.storeEvents = [{ type: 'store' as const, store: event.store, event: event.event, ts: event.ts }, ...this.storeEvents].slice(0, 50)
       }
       if (event.type === 'network') {
+        this.networkCallCounts[event.callKey] = (this.networkCallCounts[event.callKey] ?? 0) + 1
         this.networkEvents = [{
-          type: 'network',
-          method: event.method,
-          url: event.url,
-          status: event.status,
-          duration: event.duration,
-          ...(event.gql ? { gql: event.gql } : {}),
-          ts: event.ts
-        }, ...this.networkEvents].slice(0, 20)
+          ...event
+        }, ...this.networkEvents].slice(0, 50)
       }
       if (event.type === 'interaction') {
         this.openGroup(event)
@@ -111,6 +107,7 @@ class PanelStore {
     this.timelineGroups = []
     this.currentGroup = null
     this.pendingEvents = []
+    this.networkCallCounts = {}
     this.notify()
   }
 

@@ -5,11 +5,11 @@ import type { DebugEvent, InteractionEvent, NetworkEvent } from '@softcodefr/vue
 
 type TriggerEvent = InteractionEvent | NetworkEvent
 
-function isInteraction(trigger: TriggerEvent): trigger is InteractionEvent {
+export function isInteraction(trigger: TriggerEvent): trigger is InteractionEvent {
   return (trigger as InteractionEvent).type === 'interaction'
 }
 
-function isNetwork(trigger: TriggerEvent): trigger is NetworkEvent {
+export function isNetwork(trigger: TriggerEvent): trigger is NetworkEvent {
   return (trigger as NetworkEvent).type === 'network'
 }
 
@@ -118,10 +118,12 @@ class TimelinePanel extends HTMLElement {
         ${isOpen && group.children.length > 0 ? `
           <div class="children">
             ${group.children.map(child => {
-              const uid = child.type === 'render' ? ` data-uid="${child.uid}"` : ''
+              const icon = childIcon(child)
+              const isGqlIcon = icon === 'gql'
+              const uid = child.type === 'render' ? ` data-uid="${(child as any).uid}"` : ''
               return `
                 <div class="child child-${child.type}"${uid} style="border-color:${childColor(child)}" title="${childLabel(child)}">
-                  <span class="child-icon">${childIcon(child)}</span>
+                  <span class="${isGqlIcon ? 'child-icon-gql' : 'child-icon'}">${icon}</span>
                   <span class="child-label" style="color:${childColor(child)}">${childLabel(child)}</span>
                 </div>
               `
@@ -210,6 +212,7 @@ class TimelinePanel extends HTMLElement {
         }
 
         .reset-btn:hover { color: #888; }
+
         .close-btn { font-size: 14px; }
         .close-btn:hover { color: #e2e0d8; }
 
@@ -336,6 +339,13 @@ class TimelinePanel extends HTMLElement {
         }
 
         .child-icon  { font-size: 9px; flex-shrink: 0; }
+        .child-icon-gql {
+          font-size: 9px;
+          font-weight: bold;
+          color: #a78bfa;
+          letter-spacing: 0.05em;
+        }
+
         .child-label { overflow: hidden; text-overflow: ellipsis; }
       </style>
 

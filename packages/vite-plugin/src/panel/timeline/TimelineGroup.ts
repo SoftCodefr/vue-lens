@@ -1,5 +1,7 @@
 import type { TimelineGroup, TriggerEvent } from '../store'
 import type { DebugEvent } from '@softcodefr/vue-lens-core'
+import { shortUrl } from '../utils'
+import { isInteraction, isNetwork } from './TimelinePanel'
 
 function triggerIcon(trigger: TriggerEvent): string {
   if (trigger.type === 'interaction') {
@@ -9,33 +11,38 @@ function triggerIcon(trigger: TriggerEvent): string {
 }
 
 function triggerLabel(trigger: TriggerEvent): string {
-  if (trigger.type === 'interaction') {
-    return `${trigger.kind} ${trigger.component ? `<${trigger.component}/>` : ''} ${trigger.target}`
+  if (isInteraction(trigger)) {
+    return `${trigger.kind}${trigger.component ? ` <${trigger.component}/>` : ''}`
   }
-  const isGql = !!(trigger as any).gql
-  const url = isGql && (trigger as any).gql?.operationName
-    ? (trigger as any).gql.operationName
-    : trigger.url
-  return `${isGql ? 'GQL' : trigger.method} ${url} ${trigger.status}`
+  if (isNetwork(trigger)) {
+    const isGql = !!trigger.gql?.operationName
+    if (isGql) {
+      return `${trigger.gql?.operationType ?? 'gql'} · ${trigger.gql?.operationName}`
+    }
+    return `${trigger.method} ${shortUrl(trigger.url)}`
+  }
+  return ''
 }
 
 function childIcon(event: DebugEvent): string {
-  if (event.type === 'render') return '⚛'
-  if (event.type === 'store')  return '🗄'
-  if (event.type === 'route')  return '🔀'
-  if (event.type === 'network') return '🌐'
+  if (event.type === 'render')  return '⚛'
+  if (event.type === 'store')   return '🗄'
+  if (event.type === 'route')   return '🔀'
+  if (event.type === 'network') return !!(event as any).gql ? 'gql' : '🌐'
   return '·'
 }
 
 function childLabel(event: DebugEvent): string {
-  if (event.type === 'render') {
-    return `render <${event.component}/>${event.reason ? ` ↳ ${event.reason}` : ''}`
-  }
-  if (event.type === 'store') return `${event.store} · ${event.event}`
-  if (event.type === 'route') return `${event.from} → ${event.to}`
+  if (event.type === 'render')  return `<${event.component}/>`
+  if (event.type === 'store')   return `${event.store}.${event.event}`
+  if (event.type === 'route')   return `→ ${event.to}`
   if (event.type === 'network') {
     const isGql = !!(event as any).gql
-    return `${isGql ? 'GQL' : event.method} ${event.url} ${event.status} ${event.duration}ms`
+    if (isGql) {
+      const op = (event as any).gql
+      return `${op.operationType ?? 'gql'} ${op.operationName ?? '?'} ${event.status} ${event.duration}ms`
+    }
+    return `${event.method} ${shortUrl(event.url)} ${event.status} ${event.duration}ms`
   }
   return ''
 }
