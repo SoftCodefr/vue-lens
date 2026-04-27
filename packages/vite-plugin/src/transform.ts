@@ -64,6 +64,7 @@ onRenderTriggered((event: any) => {
 
 function transformClassComponent(code: string, id: string): string {
   const componentName = id.split('/').pop()?.replace('.vue', '') ?? 'Unknown'
+  const usesToNative = code.includes('toNative(')
 
   const imports = `
 import { collector } from '@softcodefr/vue-lens-core'
@@ -75,21 +76,42 @@ import { collector } from '@softcodefr/vue-lens-core'
   const uidProp = `  __vlUid = Math.random().toString(36).slice(2)\n`
 
   const mountedHook = hasMounted
-    // Injecte l'attribution de l'uid dans le mounted() existant
-    ? code.replace(
-        /mounted\s*\(\s*\)\s*\{/,
-        `mounted() {
+  ? code.replace(
+      /mounted\s*\(\s*\)\s*\{/,
+      `mounted() {
     const el = this.$el
-    if (el?.setAttribute) el.setAttribute('data-vue-lens-id', this.__vlUid)`
-      )
-    : null
+    if (el?.nodeType === 1 && el?.setAttribute) {
+      el.setAttribute('data-vue-lens-id', this.__vlUid)
+    } else {
+      const observer = new MutationObserver(() => {
+        const el = this.$el
+        if (el?.nodeType === 1 && el?.setAttribute) {
+          el.setAttribute('data-vue-lens-id', this.__vlUid)
+          observer.disconnect()
+        }
+      })
+      observer.observe(document.body, { childList: true, subtree: true })
+    }`
+    )
+  : null
 
-  const mountedBlock = hasMounted ? '' : `
-  mounted() {
-    const el = this.$el
-    if (el?.setAttribute) el.setAttribute('data-vue-lens-id', this.__vlUid)
-  }
-`
+    const mountedBlock = hasMounted ? '' : `
+    mounted() {
+      const el = this.$el
+      if (el?.nodeType === 1 && el?.setAttribute) {
+        el.setAttribute('data-vue-lens-id', this.__vlUid)
+      } else {
+        const observer = new MutationObserver(() => {
+          const el = this.$el
+          if (el?.nodeType === 1 && el?.setAttribute) {
+            el.setAttribute('data-vue-lens-id', this.__vlUid)
+            observer.disconnect()
+          }
+        })
+        observer.observe(document.body, { childList: true, subtree: true })
+      }
+    }
+  `
 
   const renderTriggered = `
   renderTriggered(event: any) {
@@ -125,6 +147,19 @@ import { collector } from '@softcodefr/vue-lens-core'
     /(<template[^>]*>\s*<)([a-zA-Z][a-zA-Z0-9-]*)/,
     `$1$2 data-vue-lens="${componentName}"`
   )
+
+  if (usesToNative) {
+    // Les hooks renderTriggered/mounted sont injectés dans la classe
+    // toNative les préserve — pas de changement nécessaire
+    // mais on vérifie que l'import toNative inclut bien les hooks Vue
+    result = result.replace(
+      /import\s*\{([^}]+)\}\s*from\s*['"]vue-facing-decorator['"]/,
+      (match, imports) => {
+        const existing = imports.split(',').map((s: string) => s.trim())
+        return match // on ne touche pas aux imports vue-facing-decorator
+      }
+    )
+  }
 
   return result
 }
