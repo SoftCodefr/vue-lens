@@ -17,6 +17,15 @@ import { Button } from '@/components/ui/button'
               Counter
             </Button>
           </RouterLink>
+          <RouterLink to="/class-component" custom v-slot="{ navigate, isActive }">
+            <Button
+              :variant="isActive ? 'default' : 'ghost'"
+              size="sm"
+              @click="navigate"
+            >
+              Counter (Vue Facing Decorator)
+            </Button>
+          </RouterLink>
           <RouterLink to="/timer" custom v-slot="{ navigate, isActive }">
             <Button
               :variant="isActive ? 'default' : 'ghost'"
