@@ -29,6 +29,22 @@ export interface NetworkEvent {
   ts: number
 }
 
+export interface InteractionEvent {
+  kind: 'click' | 'input' | 'submit'
+  target: string
+  component: string | null
+  ts: number
+}
+
+export type TriggerEvent = InteractionEvent | NetworkEvent
+
+export interface TimelineGroup {
+  id: string
+  trigger: TriggerEvent
+  children: DebugEvent[]
+  ts: number
+}
+
 type Listener = () => void
 
 class PanelStore {
@@ -36,6 +52,9 @@ class PanelStore {
   routeEvents: RouteEvent[] = []
   storeEvents: StoreEvent[] = []
   networkEvents: NetworkEvent[] = []
+  timelineGroups: TimelineGroup[] = []
+  private currentGroup: TimelineGroup | null = null
+  private readonly WINDOW_MS = 100
 
   private listeners: Listener[] = []
 
@@ -69,6 +88,25 @@ class PanelStore {
           ts: event.ts
         }, ...this.networkEvents].slice(0, 20)
       }
+      if (event.type === 'interaction') {
+        this.openGroup(event)
+      }
+  
+      if (event.type === 'network') {
+        // Network ouvre un nouveau groupe ET est ajouté comme child si un groupe est ouvert
+        if (this.currentGroup && event.ts - this.currentGroup.ts <= this.WINDOW_MS) {
+          this.currentGroup.children.push(event)
+        } else {
+          this.openGroup(event)
+        }
+      }
+  
+      if (['render', 'route', 'store'].includes(event.type)) {
+        if (this.currentGroup && event.ts - this.currentGroup.ts <= this.WINDOW_MS) {
+          this.currentGroup.children.push(event)
+          this.timelineGroups = [...this.timelineGroups]
+        }
+      }
       this.notify()
     })
   }
@@ -89,12 +127,26 @@ class PanelStore {
     this.routeEvents = []
     this.storeEvents = []
     this.networkEvents = []
+    this.timelineGroups = []
+    this.currentGroup = null
     this.notify()
   }
 
   max() {
     return Math.max(1, ...Object.values(this.instances).map(i => i.count))
   }
+
+  private openGroup(trigger: TriggerEvent) {
+    const group: TimelineGroup = {
+      id: Math.random().toString(36).slice(2),
+      trigger,
+      children: [],
+      ts: trigger.ts
+    }
+    this.currentGroup = group
+    this.timelineGroups = [group, ...this.timelineGroups].slice(0, 50)
+  }
 }
 
 export const panelStore = new PanelStore()
+

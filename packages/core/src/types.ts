@@ -34,4 +34,12 @@ export type NetworkEvent = {
   ts: number
 }
 
-export type DebugEvent = RenderEvent | RouteEvent | StoreEvent | NetworkEvent
+export type InteractionEvent = {
+  type: 'interaction'
+  kind: 'click' | 'input' | 'submit'
+  target: string
+  component: string | null
+  ts: number
+}
+
+export type DebugEvent = RenderEvent | RouteEvent | StoreEvent | NetworkEvent | InteractionEvent

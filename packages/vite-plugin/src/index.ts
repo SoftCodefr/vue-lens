@@ -7,8 +7,8 @@ export interface VueLensOptions {
   router?: boolean
   store?: boolean
   network?: boolean
+  timeline?: boolean
 }
-
 
 function detectStore(root: string): 'pinia' | 'vuex' | null {
   try {
@@ -46,6 +46,8 @@ export function vueLens(options: VueLensOptions = {}): Plugin {
       if (id === 'virtual:vue-lens-router') return '\0virtual:vue-lens-router'
       if (id === 'virtual:vue-lens-store') return '\0virtual:vue-lens-store'
       if (id === 'virtual:vue-lens-network') return '\0virtual:vue-lens-network'
+      if (id === 'virtual:vue-lens-timeline') return '\0virtual:vue-lens-timeline'
+      if (id === 'virtual:vue-lens-interactions') return '\0virtual:vue-lens-interactions'
     },
 
     load(id) {
@@ -61,6 +63,12 @@ export function vueLens(options: VueLensOptions = {}): Plugin {
       if (id === '\0virtual:vue-lens-network') {
         return readFileSync(resolve(__dirname, 'network.js'), 'utf-8')
       }
+      if (id === '\0virtual:vue-lens-timeline') {
+        return readFileSync(resolve(__dirname, 'panel/timeline/index.js'), 'utf-8')
+      }
+      if (id === '\0virtual:vue-lens-interactions') {
+        return readFileSync(resolve(__dirname, 'interaction.js'), 'utf-8')
+      }
     },
 
     transform(code, id) {
@@ -70,9 +78,10 @@ export function vueLens(options: VueLensOptions = {}): Plugin {
 
       if (id.includes('main.ts') || id.includes('main.js')) {
         let result = `import 'virtual:vue-lens-panel'\n${code}`
-        if (options.router) result = transformMain(result)
+        if (options.router)   result = transformMain(result)
         if (options.store && storeType) result = transformMainStore(result, storeType)
-        if (options.network) result = `import { setupNetwork } from 'virtual:vue-lens-network'\nsetupNetwork()\n${result}`
+        if (options.network)  result = `import { setupNetwork } from 'virtual:vue-lens-network'\nsetupNetwork()\n${result}`
+        if (options.timeline) result = `import 'virtual:vue-lens-timeline'\nimport { setupInteractions } from 'virtual:vue-lens-interactions'\nsetupInteractions()\n${result}`
         return result
       }
 
