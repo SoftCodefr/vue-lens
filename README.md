@@ -1,29 +1,42 @@
 # @softcodefr/vue-lens
 
-> Development-only Vue 3 inspector for renders, route changes, store mutations, and network requests.
+> Zero-config debug panel for Vue 3. Add one line to your Vite config and get real-time visibility into renders, routing, store mutations, network requests, and user interactions — all in one floating panel.
 
-![status](https://img.shields.io/badge/status-poc-orange)
+![status](https://img.shields.io/badge/status-beta-orange)
 ![vue](https://img.shields.io/badge/vue-3.x-brightgreen)
 ![vite](https://img.shields.io/badge/vite-5.x-646cff)
 
-`@softcodefr/vue-lens` is a Vite plugin that injects a floating debug panel into your Vue app during local development. It requires no component changes and is excluded from production builds.
+---
 
-![sreen](./assets/screen.png)
+## What it does
 
-## Features
+vue-lens injects a floating debug panel and a horizontal timeline into your app during development. Zero component modifications required — everything is instrumented automatically via the Vite plugin.
 
-- Tracks Vue component re-renders from `<script setup>` components.
-- Shows Vue Router navigations when router tracking is enabled.
-- Shows Pinia or Vuex mutations when store tracking is enabled.
-- Shows `fetch` requests, status codes, durations, and basic GraphQL metadata when network tracking is enabled.
-- Keeps recent events in a small in-memory collector.
-- Runs only in `vite dev` via `apply: 'serve'`.
+```
+┌─ @SoftCode/vue-lens ──────────────── [timeline] [reset] ▾ ┐
+│  renders  routes  store  network                           │
+│                                                            │
+│  <TimerCard/>   #a3f2  ████  24   ↳ time                  │
+│  <CounterCard/> #b7c1  ██     8   ↳ count                 │
+│  <App/>         #e9d4  █      2                            │
+└────────────────────────────────────────────────────────────┘
+
+┌─ timeline ──────────────────────────────────────────────── ✕ ┐
+│  🖱 click        🌐 POST /api     🖱 click                    │
+│  <CounterCard/>  GetCountry       <CartCard/>                │
+│  14:32:05        14:32:08         14:32:15                   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## Installation
 
 ```bash
-pnpm add -D @softcodefr/vue-lens
+pnpm add -D @softcodefr/vue-lens-vite-plugin
 ```
+
+---
 
 ## Setup
 
@@ -31,203 +44,229 @@ pnpm add -D @softcodefr/vue-lens
 // vite.config.ts
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { vueLens } from '@softcodefr/vue-lens'
+import { vueLens } from '@softcodefr/vue-lens-vite-plugin'
 
 export default defineConfig({
   plugins: [
     vue(),
-    vueLens(),
-  ],
+    vueLens({
+      router:   true,   // track Vue Router navigations
+      store:    true,   // track Pinia or Vuex mutations (auto-detected)
+      network:  true,   // track fetch requests (REST + GraphQL)
+      timeline: true,   // show horizontal timeline panel
+    })
+  ]
 })
 ```
 
-The panel appears automatically in development. It mounts itself into the DOM, so you do not need to add a Vue component to your app.
+The panel appears automatically in development. **Nothing is included in production builds** (`apply: 'serve'`).
 
-## Options
+---
 
-Render tracking is enabled by default. Router, store, and network tracking are opt-in.
+## Features
 
-```ts
-vueLens({
-  router: true,
-  store: true,
-  network: true,
-})
-```
+### Renders tab
+- Re-render count **per component instance**
+- Last render reason (which `ref` or `prop` triggered it)
+- Color-coded heat map — orange for hot components, purple for warm
+- **Hover to highlight** the exact instance in the DOM
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `router` | `false` | Tracks Vue Router navigations by instrumenting `router.afterEach`. |
-| `store` | `false` | Tracks Pinia or Vuex mutations. The plugin detects `pinia` or `vuex` from `package.json`. |
-| `network` | `false` | Wraps `window.fetch` to track requests, response status, duration, and GraphQL operation info when available. |
+### Routes tab
+- Full navigation history with timestamps
+- From / to path for each transition
 
-### Router Tracking
+### Store tab
+- Real-time mutation log for **Pinia** and **Vuex**
+- Store name + action name + timestamp
+- Auto-detected from `package.json` — no config needed
 
-Router tracking expects the app entry to contain the usual pattern:
+### Network tab
+- All `fetch` requests intercepted automatically
+- **GraphQL support** — displays `operationName` and `operationType` instead of raw URL
+- Status code color-coded (green / orange / red)
+- Request duration in ms
 
-```ts
-app.use(router)
-```
+### Timeline panel
+- Horizontal scrollable timeline at the bottom of the screen
+- Groups events by **causal activity** — renders and mutations triggered by the same click or network call are grouped together
+- Click a group to expand its children
+- **Hover a render child to highlight** the component in the DOM
+- 100ms grouping window
 
-When enabled, the plugin injects `setupVueLensRouter(router)` after that call.
+### Panel UX
+- **Draggable** — reposition anywhere on screen
+- **Toggle** open/close from the header
+- **Reset** button to clear all counters
+- Isolated via **Shadow DOM** — no style conflicts with your app
 
-### Store Tracking
+---
 
-Store tracking currently supports Pinia and Vuex.
+## How it works
 
-For Pinia, the plugin looks for:
+### Transform
 
-```ts
-const pinia = createPinia()
-app.use(pinia)
-```
-
-For Vuex, the plugin looks for:
-
-```ts
-const store = createStore({})
-app.use(store)
-```
-
-### Network Tracking
-
-Network tracking wraps `window.fetch`. It records:
-
-- HTTP method
-- URL
-- response status
-- request duration
-- GraphQL operation name and type when the request body contains a GraphQL query
-
-## How It Works
-
-The Vite plugin transforms Vue SFCs and the app entry during development.
-
-For every `.vue` file with a `<script setup>`, it injects `onRenderTriggered`:
+For every `.vue` file with `<script setup>`, the plugin injects `onRenderTriggered` automatically:
 
 ```vue
-<!-- your component -->
+<!-- your component — untouched -->
 <script setup>
 const count = ref(0)
 </script>
 
-<!-- compiled by Vite with vue-lens enabled -->
+<!-- what Vite actually compiles -->
 <script setup>
-import { onRenderTriggered } from 'vue'
+import { onRenderTriggered, onMounted, getCurrentInstance } from 'vue'
 import { collector } from '@softcodefr/vue-lens-core'
 
-onRenderTriggered(() => {
-  collector.emit({
-    type: 'render',
-    component: 'MyComponent',
-    file: '/path/to/MyComponent.vue',
-    ts: Date.now(),
-  })
+const __vlUid = Math.random().toString(36).slice(2)
+
+onMounted(() => {
+  const el = getCurrentInstance()?.proxy?.$el
+  if (el?.setAttribute) el.setAttribute('data-vue-lens-id', __vlUid)
+})
+
+onRenderTriggered((event) => {
+  collector.emit({ type: 'render', component: 'MyComponent', uid: __vlUid, reason: event.key, ... })
 })
 
 const count = ref(0)
 </script>
 ```
 
-The plugin also injects a virtual panel module into `main.ts` or `main.js`. The panel subscribes to the collector and renders the latest debug information in the browser.
+### vue-facing-decorator support
 
-## Collector API
+Components using `@Component` + `extends Vue` are also instrumented automatically via `renderTriggered()` injection into the class body. Compatible with `toNative()`.
 
-`@softcodefr/vue-lens-core` exposes the event collector used by the panel.
+### Panel injection
+
+The plugin injects a virtual module import into `main.ts` at dev server startup. The panel mounts itself as a Web Component (`<vue-lens-panel>`) with no `<VueLensPanel />` to add anywhere.
+
+### Store auto-detection
+
+The plugin reads your `package.json` at startup and detects whether you use Pinia or Vuex — no manual config needed.
+
+---
+
+## Packages
+
+```
+@softcodefr/vue-lens-core          # Event collector & ring buffer
+@softcodefr/vue-lens-vite-plugin   # Vite plugin + SFC transform + panel UI
+```
+
+### `@softcodefr/vue-lens-core`
 
 ```ts
 import { collector } from '@softcodefr/vue-lens-core'
 
+// Subscribe to events
 const unsubscribe = collector.on((event) => {
   console.log(event)
+  // { type: 'render', component: 'MyComponent', uid: '...', reason: 'count', ts: ... }
+  // { type: 'route', from: '/', to: '/dashboard', ts: ... }
+  // { type: 'store', store: 'cart', event: 'addToCart', ts: ... }
+  // { type: 'network', method: 'POST', url: '...', status: 200, duration: 342, ts: ... }
+  // { type: 'interaction', kind: 'click', target: 'button "Add to cart"', component: 'CartCard', ts: ... }
 })
 
-const events = collector.getBuffer()
+// Read the buffer (last 200 events)
+collector.getBuffer()
 
+// Reset
 collector.reset()
-unsubscribe()
 ```
 
-Event types currently emitted:
+---
 
-```ts
-type DebugEvent =
-  | { type: 'render'; component: string; file: string; ts: number }
-  | { type: 'route'; from: string; to: string; ts: number }
-  | { type: 'store'; store: string; event: string; ts: number }
-  | {
-      type: 'network'
-      method: string
-      url: string
-      status: number
-      duration: number
-      gql?: {
-        operationName: string | null
-        operationType: 'query' | 'mutation' | 'subscription' | null
-      }
-      ts: number
-    }
-```
-
-## Monorepo Structure
+## Monorepo structure
 
 ```
-@softcodefr/vue-lens/
+vue-lens/
 ├── packages/
-│   ├── core/           # Event collector and debug event types
-│   └── vite-plugin/    # Vite plugin, transforms, virtual modules, panel UI
-└── playground/         # Vue 3 app for local development
+│   ├── core/                    # Event types + collector
+│   └── vite-plugin/             # Vite plugin + transforms + panel
+│       └── src/
+│           ├── index.ts         # Plugin entry
+│           ├── transform.ts     # SFC + class component transform
+│           ├── router.ts        # Vue Router tracker
+│           ├── store.ts         # Pinia/Vuex tracker
+│           ├── network.ts       # fetch interceptor
+│           ├── interaction.ts   # DOM interaction tracker
+│           └── panel/
+│               ├── index.ts     # Panel entry
+│               ├── store.ts     # Panel state singleton
+│               ├── utils.ts     # Shared helpers + highlight
+│               ├── VueLensPanel.ts
+│               ├── tabs/
+│               │   ├── RendersTab.ts
+│               │   ├── RoutesTab.ts
+│               │   ├── StoreTab.ts
+│               │   └── NetworkTab.ts
+│               └── timeline/
+│                   ├── index.ts
+│                   └── TimelinePanel.ts
+└── playground/                  # Vue 3 test app
 ```
+
+---
 
 ## Development
 
 ```bash
-# install dependencies
+# Install dependencies
 pnpm install
 
-# build all packages
+# Build all packages
 pnpm build
 
-# run type checks
-pnpm typecheck
-
-# start the playground
+# Start the playground
 pnpm dev
 ```
 
-To work on the Vite plugin with live rebuilds:
+Watch mode for active development:
 
 ```bash
-cd packages/vite-plugin
-pnpm dev
+# Terminal 1 — rebuild packages on change
+cd packages/vite-plugin && pnpm dev
+
+# Terminal 2 — playground
+cd playground && pnpm dev
 ```
 
-Then start the playground in another terminal:
+---
+
+## Publishing
+
+Triggered automatically on git tag push:
 
 ```bash
-cd playground
-pnpm dev
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
-## Current Limitations
+GitHub Actions builds both packages and publishes them to npm under the `@softcodefr` organization.
 
-- Render tracking only instruments Vue SFCs that use `<script setup>`.
-- Entry-file transforms currently target `main.ts` and `main.js`.
-- Router and store instrumentation expects common setup names such as `router`, `pinia`, and `store`.
-- Network tracking currently covers `window.fetch`, not `XMLHttpRequest`.
+---
 
 ## Roadmap
 
-- [x] Re-render tracking per component
-- [x] Automatic injection via Vite plugin
-- [x] Floating development panel
+- [x] Re-render tracking per instance
+- [x] Render reason (which ref/prop triggered)
 - [x] Vue Router navigation tracking
-- [x] Pinia/Vuex mutation tracking
-- [x] Network request tracking
-- [ ] Session sharing
-- [ ] More robust app entry detection
-- [ ] Component support beyond `<script setup>`
+- [x] Pinia / Vuex mutation tracking
+- [x] Network tracking (REST + GraphQL)
+- [x] Interaction tracking (click, input, submit)
+- [x] Horizontal timeline with causal grouping
+- [x] Component highlight on hover
+- [x] vue-facing-decorator support
+- [x] Web Components panel (Shadow DOM isolated)
+- [x] Draggable panel
+- [ ] Performance budgets & alerts
+- [ ] Time travel (Pinia state history)
+- [ ] Session sharing + DOM streaming
+
+---
 
 ## License
 
-MIT
+MIT — built by [SoftCode](https://softcode.fr)
