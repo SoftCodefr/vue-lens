@@ -1,6 +1,6 @@
 {
   "name": "@softcodefr/vue-lens",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "A Vite plugin for Vue.js debugging and inspection",
   "private": false,
   "type": "module",
