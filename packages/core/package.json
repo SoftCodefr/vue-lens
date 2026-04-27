@@ -1,6 +1,6 @@
 {
   "name": "@softcodefr/vue-lens-core",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Core utilities for Vue Lens debugging tools",
   "private": false,
   "type": "module",
